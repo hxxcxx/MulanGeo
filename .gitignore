@@ -1,0 +1,38 @@
+# Build outputs
+build/
+out/
+Debug/
+Release/
+RelWithDebInfo/
+MinSizeRel/
+
+# Visual Studio
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+CMakeSettings.json
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# IDE
+.vs/
+.idea/
+*.swp
+*.swo
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+*.cmake
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
