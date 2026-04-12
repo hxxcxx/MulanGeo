@@ -5,8 +5,16 @@ add_library(IO SHARED
 )
 
 target_include_directories(IO PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
+
+# Copy public headers to build/include
+file(GLOB_RECURSE IO_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+foreach(hdr ${IO_HEADERS})
+    file(RELATIVE_PATH rel "${CMAKE_CURRENT_SOURCE_DIR}/include" "${hdr}")
+    configure_file("${hdr}" "${CMAKE_BINARY_DIR}/include/${rel}" COPYONLY)
+endforeach()
 
 target_include_directories(IO PRIVATE
     ${OCCT_INCLUDE_DIR}

@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/src/IO/include",
+                "${workspaceFolder}/src/QtApp",
+                "${workspaceFolder}/build/include",
+                "F:/dev/opencascade-7.9.3-vc14-64/inc",
+                "F:/dev/3rdparty-vc14-64/tbb-2021.13.0-x64/include",
+                "F:/dev/3rdparty-vc14-64/freetype-2.13.3-x64/include",
+                "F:/dev/qt6/6.8.3/msvc2022_64/include/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "WIN32",
+                "_WINDOWS",
+                "NOMINMAX"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64",
+            "compilerPath": "C:/APP/VS/2022/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe"
+        }
+    ],
+    "version": 4
+}
