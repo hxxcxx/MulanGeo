@@ -38,6 +38,7 @@ private:
     // GL objects
     GLuint m_vao = 0, m_vbo = 0, m_ebo = 0, m_shaderProgram = 0;
     bool m_meshReady = false;
+    bool m_needUpload = false;
 
     // Camera
     float m_rotX = 30.0f, m_rotY = 45.0f, m_zoom = 5.0f;

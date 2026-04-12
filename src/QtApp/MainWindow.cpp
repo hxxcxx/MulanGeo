@@ -65,7 +65,7 @@ void GLWidget::loadMesh(const MulanGeo::IO::ImportResult& result) {
     m_rotX = 30;
     m_rotY = 45;
 
-    if (m_shaderProgram) uploadMesh();
+    m_needUpload = true;
     update();
 }
 
@@ -75,7 +75,6 @@ void GLWidget::initializeGL() {
     glEnable(GL_DEPTH_TEST);
 
     setupShaders();
-    if (m_meshReady) uploadMesh();
 }
 
 void GLWidget::setupShaders() {
@@ -92,7 +91,7 @@ void GLWidget::setupShaders() {
 
         void main() {
             gl_Position = uMVP * vec4(aPos, 1.0);
-            vNormal = mat3(uModel) * aNormal;
+            vNormal = normalize(mat3(uModel) * aNormal);
             vWorldPos = (uModel * vec4(aPos, 1.0)).xyz;
         }
     )";
@@ -103,21 +102,34 @@ void GLWidget::setupShaders() {
         in vec3 vWorldPos;
         out vec4 FragColor;
 
-        uniform vec3 uColor;
         uniform vec3 uLightDir;
+        uniform vec3 uCameraPos;
 
         void main() {
             vec3 N = normalize(vNormal);
-            float diff = max(dot(N, normalize(uLightDir)), 0.0);
-            vec3 ambient = 0.2 * uColor;
-            vec3 diffuse = 0.8 * diff * uColor;
+            vec3 L = normalize(uLightDir);
+            vec3 V = normalize(uCameraPos - vWorldPos);
+            vec3 H = normalize(L + V);
 
-            // Simple specular
-            vec3 viewDir = normalize(-vWorldPos);
-            vec3 H = normalize(normalize(uLightDir) + viewDir);
-            float spec = pow(max(dot(N, H), 0.0), 32.0);
+            // Base color - neutral grey for CAD
+            vec3 baseColor = vec3(0.85, 0.85, 0.88);
 
-            FragColor = vec4(ambient + diffuse + 0.3 * spec * vec3(1.0), 1.0);
+            // Two-light setup
+            // Key light
+            float diff1 = max(dot(N, L), 0.0);
+            // Fill light (opposite side, softer)
+            float diff2 = max(dot(N, normalize(vec3(-0.3, 0.5, -0.4))), 0.0) * 0.3;
+
+            float ambient = 0.15;
+            float diffuse = diff1 * 0.65 + diff2;
+            float spec = pow(max(dot(N, H), 0.0), 64.0) * 0.4;
+
+            // Subtle rim light to show silhouette
+            float rim = 1.0 - max(dot(V, N), 0.0);
+            rim = smoothstep(0.55, 1.0, rim) * 0.15;
+
+            vec3 color = baseColor * (ambient + diffuse) + vec3(spec) + vec3(rim);
+            FragColor = vec4(color, 1.0);
         }
     )";
 
@@ -149,9 +161,14 @@ void GLWidget::setupShaders() {
 void GLWidget::uploadMesh() {
     if (m_vertices.empty()) return;
 
-    if (!m_vao) glGenVertexArrays(1, &m_vao);
-    if (!m_vbo) glGenBuffers(1, &m_vbo);
-    if (!m_ebo) glGenBuffers(1, &m_ebo);
+    // Clean up old GL objects
+    if (m_vao) { glDeleteVertexArrays(1, &m_vao); m_vao = 0; }
+    if (m_vbo) { glDeleteBuffers(1, &m_vbo); m_vbo = 0; }
+    if (m_ebo) { glDeleteBuffers(1, &m_ebo); m_ebo = 0; }
+
+    glGenVertexArrays(1, &m_vao);
+    glGenBuffers(1, &m_vbo);
+    glGenBuffers(1, &m_ebo);
 
     glBindVertexArray(m_vao);
 
@@ -162,13 +179,15 @@ void GLWidget::uploadMesh() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(uint32_t), m_indices.data(), GL_STATIC_DRAW);
 
     // position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
     // normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
 
     glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GLWidget::resizeGL(int w, int h) {
@@ -177,7 +196,13 @@ void GLWidget::resizeGL(int w, int h) {
 
 void GLWidget::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (!m_meshReady || !m_shaderProgram) return;
+
+    if (m_needUpload) {
+        uploadMesh();
+        m_needUpload = false;
+    }
+
+    if (!m_meshReady || !m_shaderProgram || !m_vao || m_vertexCount <= 0) return;
 
     glUseProgram(m_shaderProgram);
 
@@ -216,8 +241,12 @@ void GLWidget::paintGL() {
 
     glUniformMatrix4fv(glGetUniformLocation(m_shaderProgram, "uMVP"), 1, GL_FALSE, mvp);
     glUniformMatrix4fv(glGetUniformLocation(m_shaderProgram, "uModel"), 1, GL_FALSE, view);
-    glUniform3f(glGetUniformLocation(m_shaderProgram, "uColor"), 0.7f, 0.75f, 0.8f);
-    glUniform3f(glGetUniformLocation(m_shaderProgram, "uLightDir"), 0.5f, 1.0f, 0.8f);
+    glUniform3f(glGetUniformLocation(m_shaderProgram, "uLightDir"), 0.5f, 0.8f, 0.6f);
+    // Camera position in world space: inverse of view rotation * (0,0,zoom)
+    float camX = sry * crx * m_zoom;
+    float camY = srx * m_zoom;
+    float camZ = cry * crx * m_zoom;
+    glUniform3f(glGetUniformLocation(m_shaderProgram, "uCameraPos"), camX, camY, camZ);
 
     glBindVertexArray(m_vao);
     glDrawElements(GL_TRIANGLES, m_vertexCount, GL_UNSIGNED_INT, nullptr);
