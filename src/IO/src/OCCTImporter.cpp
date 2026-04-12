@@ -199,18 +199,9 @@ std::string OCCTImporter::name() const {
     return "OCCT Importer";
 }
 
-// Auto-register for each supported extension
-static AutoRegisterImporter _reg_step("step", []() -> std::unique_ptr<IFileImporter> {
-    return std::make_unique<OCCTImporter>();
-});
-static AutoRegisterImporter _reg_stp("stp", []() -> std::unique_ptr<IFileImporter> {
-    return std::make_unique<OCCTImporter>();
-});
-static AutoRegisterImporter _reg_iges("iges", []() -> std::unique_ptr<IFileImporter> {
-    return std::make_unique<OCCTImporter>();
-});
-static AutoRegisterImporter _reg_igs("igs", []() -> std::unique_ptr<IFileImporter> {
-    return std::make_unique<OCCTImporter>();
-});
+MULAN_REGISTER_IMPORTER("step", OCCTImporter)
+MULAN_REGISTER_IMPORTER("stp", OCCTImporter)
+MULAN_REGISTER_IMPORTER("iges", OCCTImporter)
+MULAN_REGISTER_IMPORTER("igs", OCCTImporter)
 
 } // namespace MulanGeo::IO
