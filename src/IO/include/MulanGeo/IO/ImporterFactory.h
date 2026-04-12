@@ -34,9 +34,3 @@ public:
 };
 
 } // namespace MulanGeo::IO
-
-#define MULAN_REGISTER_IMPORTER(Extension, ClassName) \
-    static ::MulanGeo::IO::AutoRegisterImporter _reg_##ClassName( \
-        Extension, []() -> std::unique_ptr<::MulanGeo::IO::IFileImporter> { \
-            return std::make_unique<ClassName>(); \
-        })
