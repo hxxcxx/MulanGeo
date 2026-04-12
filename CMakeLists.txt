@@ -7,12 +7,28 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# ── OpenCASCADE (manual config to avoid VTK dependency) ──
-set(OCCT_ROOT "F:/dev/opencascade-7.9.3-vc14-64")
+# ── OpenCASCADE ──
+# 查找路径优先级: CMakePresets / -DOCCT_ROOT / 环境变量 OCCT_ROOT
+if(NOT OCCT_ROOT)
+    if(DEFINED ENV{OCCT_ROOT})
+        set(OCCT_ROOT "$ENV{OCCT_ROOT}")
+    else()
+        message(FATAL_ERROR
+            "OCCT_ROOT not set. "
+            "Use CMakePresets.json, -DOCCT_ROOT=..., or set OCCT_ROOT env var."
+        )
+    endif()
+endif()
+message(STATUS "OCCT_ROOT: ${OCCT_ROOT}")
+
 set(OCCT_INCLUDE_DIR "${OCCT_ROOT}/inc")
 set(OCCT_LIB_DIR "${OCCT_ROOT}/win64/vc14/lib")
+set(OCCT_BIN_DIR "${OCCT_ROOT}/win64/vc14/bin")
 
-# Only the toolkits we actually need
+if(NOT EXISTS "${OCCT_INCLUDE_DIR}")
+    message(FATAL_ERROR "OCCT include dir not found: ${OCCT_INCLUDE_DIR}")
+endif()
+
 set(OCCT_LIBS
     TKernel TKMath
     TKG2d TKG3d TKGeomBase TKBRep
@@ -21,8 +37,18 @@ set(OCCT_LIBS
     TKDE TKXSBase TKDESTEP TKXCAF TKDEIGES TKDESTL TKRWMesh TKDECascade TKBinXCAF
 )
 
+# ── OCCT 3rdparty ──
+if(NOT OCCT_3RDPARTY_DIR)
+    if(DEFINED ENV{OCCT_3RDPARTY_DIR})
+        set(OCCT_3RDPARTY_DIR "$ENV{OCCT_3RDPARTY_DIR}")
+    endif()
+endif()
+if(OCCT_3RDPARTY_DIR)
+    message(STATUS "OCCT_3RDPARTY_DIR: ${OCCT_3RDPARTY_DIR}")
+endif()
+
 # ── Qt6 ──
-set(CMAKE_PREFIX_PATH "F:/dev/qt6/6.8.3/msvc2022_64")
+# 查找路径优先级: CMakePresets / -DCMAKE_PREFIX_PATH / Qt6_DIR 环境变量
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 
 # ── Subdirectories ──

@@ -1,0 +1,48 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": { "major": 3, "minor": 20, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default (MSVC x64 Release)",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "OCCT_ROOT": {
+                    "type": "PATH",
+                    "value": "F:/dev/opencascade-7.9.3-vc14-64"
+                },
+                "OCCT_3RDPARTY_DIR": {
+                    "type": "PATH",
+                    "value": "F:/dev/3rdparty-vc14-64"
+                },
+                "CMAKE_PREFIX_PATH": {
+                    "type": "PATH",
+                    "value": "F:/dev/qt6/6.8.3/msvc2022_64"
+                }
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release",
+            "configurePreset": "default",
+            "configuration": "Release"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "default",
+            "configuration": "Debug"
+        },
+        {
+            "name": "relwithdebinfo",
+            "configurePreset": "default",
+            "configuration": "RelWithDebInfo"
+        }
+    ]
+}
