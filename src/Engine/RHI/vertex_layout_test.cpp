@@ -3,3 +3,5 @@
 #include <MulanGeo/Engine/RHI/VertexSemantic.h>
 #include <MulanGeo/Engine/RHI/VertexLayout.h>
 #include <MulanGeo/Engine/RHI/VertexBuffer.h>
+#include <MulanGeo/Engine/RHI/Buffer.h>
+#include <MulanGeo/Engine/RHI/CommandList.h>
