@@ -52,5 +52,6 @@ endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 
 # ── Subdirectories ──
+add_subdirectory(src/Engine)
 add_subdirectory(src/IO)
 add_subdirectory(src/QtApp)
