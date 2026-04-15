@@ -4,6 +4,9 @@ add_library(IO SHARED
     OCCTImporter.cpp
 )
 
+# IO 的 MeshNode 继承 Engine 的 SceneNode
+target_link_libraries(IO PUBLIC Engine)
+
 # 构建时将头文件复制到 build/include/MulanGeo/IO/...
 file(GLOB_RECURSE IO_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"

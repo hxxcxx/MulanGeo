@@ -2,10 +2,10 @@
  * 场景节点 — 场景层级的基本单元
  *
  * SceneNode (基类) — 层级、变换、可见性、拾取
- *   └── MeshNode (派生) — 持有网格数据
+ *   └── IO::MeshNode (IO 模块定义) — 持有网格数据
  *
- * 装配体节点用 SceneNode，零件节点用 MeshNode。
- * 基类不包含任何渲染相关数据。
+ * Engine 只定义 SceneNode 基类，不感知任何派生类。
+ * 派生类由上层模块（如 IO）自行扩展，通过 NodeType + as<T>() 识别。
  */
 
 #pragma once
@@ -19,8 +19,15 @@
 #include <vector>
 #include <memory>
 
-// 前向声明 IO 层的 MeshPart，避免直接 include
-namespace MulanGeo::IO { struct MeshPart; }
+namespace MulanGeo {
+
+// 节点类型标签 — 各模块可自行分配值
+using NodeType = uint8_t;
+
+// Engine 保留范围: 0
+constexpr NodeType BaseNodeType = 0;
+
+} // namespace MulanGeo
 
 namespace MulanGeo::Engine {
 
@@ -33,19 +40,14 @@ class Scene;  // 友元前向声明
 class SceneNode {
     friend class Scene;
 public:
-    // 节点类型标识（用于安全 downcast，不用 RTTI）
-    enum class Type : uint8_t {
-        Base,
-        Mesh,
-    };
-
     virtual ~SceneNode() = default;
 
     // --- 类型查询 ---
 
-    Type type() const { return m_type; }
+    MulanGeo::NodeType type() const { return m_type; }
 
-    bool isMeshNode() const { return m_type == Type::Mesh; }
+    // 通用类型检查
+    bool isType(MulanGeo::NodeType t) const { return m_type == t; }
 
     // 安全转换（失败返回 nullptr）
     template<typename T>
@@ -57,7 +59,7 @@ public:
     // --- 构造（子类调用）---
 
 protected:
-    explicit SceneNode(Type type, std::string name = {}, uint32_t pickId = 0)
+    explicit SceneNode(MulanGeo::NodeType type, std::string name = {}, uint32_t pickId = 0)
         : m_type(type), m_name(std::move(name)), m_pickId(pickId) {}
 
 public:
@@ -128,7 +130,7 @@ public:
     void setSelected(bool s) { m_selected = s; }
 
 private:
-    Type        m_type;
+    MulanGeo::NodeType m_type;
     std::string m_name;
     uint32_t    m_pickId   = 0;
     bool        m_visible  = true;
@@ -141,27 +143,6 @@ private:
 
     SceneNode*  m_parent = nullptr;
     std::vector<std::unique_ptr<SceneNode>> m_children;
-};
-
-// ============================================================
-// 网格节点 — 持有 IO 层的 MeshPart 引用
-// ============================================================
-
-class MeshNode final : public SceneNode {
-public:
-    static constexpr Type kType = Type::Mesh;
-
-    using MeshPart = MulanGeo::IO::MeshPart;
-
-    explicit MeshNode(std::string name = {}, uint32_t pickId = 0)
-        : SceneNode(kType, std::move(name), pickId) {}
-
-    // 网格数据（指向 IO 层，不拥有）
-    const MeshPart* meshData() const { return m_meshData; }
-    void setMeshData(const MeshPart* mesh) { m_meshData = mesh; }
-
-private:
-    const MeshPart* m_meshData = nullptr;
 };
 
 } // namespace MulanGeo::Engine

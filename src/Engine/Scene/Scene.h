@@ -2,7 +2,10 @@
  * 场景 — 管理场景节点树
  *
  * 提供根节点、添加/删除/查找节点、
- * 世界变换更新、可见性遍历等操作。
+ * 世界变换更新、回调遍历等操作。
+ *
+ * Scene 只感知 SceneNode 基类，不感知任何派生类。
+ * 派生类型由调用方通过 as<T>() 自行处理。
  */
 
 #pragma once
@@ -11,6 +14,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string_view>
 
 namespace MulanGeo::Engine {
@@ -18,7 +22,7 @@ namespace MulanGeo::Engine {
 class Scene {
 public:
     Scene() {
-        m_root = std::make_unique<SceneNode>(SceneNode::Type::Base, "__root__");
+        m_root = std::make_unique<SceneNode>(MulGeo::BaseNodeType, "__root__");
     }
 
     // --- 根节点 ---
@@ -26,28 +30,27 @@ public:
     SceneNode* root() { return m_root.get(); }
     const SceneNode* root() const { return m_root.get(); }
 
-    // --- 便捷：添加节点 ---
+    // --- 添加节点 ---
 
-    // 添加到根节点（SceneNode 基类，装配体用）
+    // 添加基类节点到根（装配体/分组用）
     SceneNode* addNode(std::string name, uint32_t pickId = 0) {
         return addNode(root(), std::move(name), pickId);
     }
 
-    // 添加到指定父节点（SceneNode 基类）
+    // 添加基类节点到指定父节点
     SceneNode* addNode(SceneNode* parent, std::string name, uint32_t pickId = 0) {
-        auto child = std::make_unique<SceneNode>(SceneNode::Type::Base, std::move(name), pickId);
+        auto child = std::make_unique<SceneNode>(MulGeo::BaseNodeType, std::move(name), pickId);
         return parent->addChild(std::move(child));
     }
 
-    // 添加网格节点到根
-    MeshNode* addMeshNode(std::string name, uint32_t pickId = 0) {
-        return addMeshNode(root(), std::move(name), pickId);
+    // 添加预构造的节点到根（可以是任意派生类型）
+    SceneNode* addChild(std::unique_ptr<SceneNode> child) {
+        return addChild(root(), std::move(child));
     }
 
-    // 添加网格节点到指定父节点
-    MeshNode* addMeshNode(SceneNode* parent, std::string name, uint32_t pickId = 0) {
-        auto child = std::make_unique<MeshNode>(std::move(name), pickId);
-        return static_cast<MeshNode*>(parent->addChild(std::move(child)));
+    // 添加预构造的节点到指定父节点
+    SceneNode* addChild(SceneNode* parent, std::unique_ptr<SceneNode> child) {
+        return parent->addChild(std::move(child));
     }
 
     // --- 查找 ---
@@ -69,16 +72,18 @@ public:
         updateWorldTransform(root(), Mat4::identity());
     }
 
-    // --- 遍历 ---
+    // --- 遍历（回调式）---
 
-    // 遍历所有实际可见的 MeshNode
-    using VisibleMeshCallback = std::function<void(
-        const MeshNode* node,
-        const MeshNode::MeshPart& mesh,
-        const Mat4& worldTransform)>;
+    using NodeCallback = std::function<void(SceneNode&)>;
 
-    void forEachVisibleMesh(const VisibleMeshCallback& callback) const {
-        traverseVisibleMesh(root(), callback);
+    // 遍历所有节点（深度优先）
+    void traverse(const NodeCallback& callback) {
+        traverseImpl(root(), callback);
+    }
+
+    // 只遍历可见节点（跳过不可见子树）
+    void traverseVisible(const NodeCallback& callback) {
+        traverseVisibleImpl(root(), callback);
     }
 
     // --- 统计 ---
@@ -89,21 +94,15 @@ public:
         return count;
     }
 
-    size_t meshNodeCount() const {
-        size_t count = 0;
-        countMeshNodes(root(), count);
-        return count;
-    }
-
     // --- 清空 ---
 
     void clear() {
-        m_root = std::make_unique<SceneNode>(SceneNode::Type::Base, "__root__");
+        m_root = std::make_unique<SceneNode>(MulGeo::BaseNodeType, "__root__");
     }
 
 private:
     // 深度优先查找
-    static SceneNode* findByPickId(SceneNode* node, uint32_t pickId) {
+    SceneNode* findByPickId(SceneNode* node, uint32_t pickId) {
         if (!node) return nullptr;
         if (node->pickId() == pickId) return node;
         for (auto& child : node->children()) {
@@ -113,7 +112,7 @@ private:
         return nullptr;
     }
 
-    static SceneNode* findByName(SceneNode* node, std::string_view name) {
+    SceneNode* findByName(SceneNode* node, std::string_view name) {
         if (!node) return nullptr;
         if (node->name() == name) return node;
         for (auto& child : node->children()) {
@@ -124,44 +123,39 @@ private:
     }
 
     // 级联更新世界变换
-    static void updateWorldTransform(SceneNode* node, const Mat4& parentWorld) {
+    void updateWorldTransform(SceneNode* node, const Mat4& parentWorld) {
         if (!node) return;
         auto newWorld = parentWorld * node->localTransform();
-        node->m_worldTransform = newWorld;  // 需要友元或改为 public setter
+        node->m_worldTransform = newWorld;
         node->m_worldDirty = false;
         for (auto& child : node->children()) {
             updateWorldTransform(child.get(), newWorld);
         }
     }
 
-    // 遍历可见网格
-    static void traverseVisibleMesh(const SceneNode* node,
-                                     const VisibleMeshCallback& cb) {
-        if (!node || !node->isEffectivelyVisible()) return;
-        if (node->isMeshNode()) {
-            auto* meshNode = node->as<MeshNode>();
-            if (meshNode && meshNode->meshData()) {
-                cb(meshNode, *meshNode->meshData(), meshNode->worldTransform());
-            }
-        }
+    // 遍历所有节点
+    void traverseImpl(SceneNode* node, const NodeCallback& callback) {
+        if (!node) return;
+        callback(*node);
         for (auto& child : node->children()) {
-            traverseVisibleMesh(child.get(), cb);
+            traverseImpl(child.get(), callback);
         }
     }
 
-    static void countNodes(const SceneNode* node, size_t& count) {
+    // 遍历可见节点
+    void traverseVisibleImpl(const SceneNode* node, const NodeCallback& callback) {
+        if (!node || !node->isEffectivelyVisible()) return;
+        callback(*const_cast<SceneNode*>(node));
+        for (auto& child : node->children()) {
+            traverseVisibleImpl(child.get(), callback);
+        }
+    }
+
+    void countNodes(const SceneNode* node, size_t& count) {
         if (!node) return;
         ++count;
         for (auto& child : node->children()) {
             countNodes(child.get(), count);
-        }
-    }
-
-    static void countMeshNodes(const SceneNode* node, size_t& count) {
-        if (!node) return;
-        if (node->isMeshNode()) ++count;
-        for (auto& child : node->children()) {
-            countMeshNodes(child.get(), count);
         }
     }
 

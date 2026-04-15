@@ -1,5 +1,5 @@
-# Engine - 渲染后端与场景管理 (DLL)
-add_library(Engine SHARED
+# Engine - 渲染后端与场景管理（静态库 — 主要是头文件）
+add_library(Engine STATIC
     RHI/vertex_layout_test.cpp
     Math/Mat4.cpp
 )
@@ -18,7 +18,5 @@ target_include_directories(Engine PUBLIC
 )
 
 target_compile_definitions(Engine PRIVATE
-    ENGINE_EXPORTS
-    BUILDING_ENGINE
     $<$<CONFIG:Debug>:_DEBUG>
 )
