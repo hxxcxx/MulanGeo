@@ -1,5 +1,8 @@
 {
   "name": "mulangeo",
   "version": "1.0.0",
-  "dependencies": []
+  "dependencies": [
+    "vulkan",
+    "vulkan-memory-allocator"
+  ]
 }
