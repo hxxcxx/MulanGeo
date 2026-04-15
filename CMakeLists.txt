@@ -9,13 +9,18 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ── OpenCASCADE ──
 # 查找路径优先级: CMakePresets / -DOCCT_ROOT / 环境变量 OCCT_ROOT
-if(NOT OCCT_ROOT)
-    if(DEFINED ENV{OCCT_ROOT})
+# 即使变量已设置，也需要验证目录是否真实存在
+if(NOT OCCT_ROOT OR NOT EXISTS "${OCCT_ROOT}")
+    if(OCCT_ROOT AND NOT EXISTS "${OCCT_ROOT}")
+        message(WARNING "OCCT_ROOT is set to '${OCCT_ROOT}' but the directory does not exist, falling back...")
+    endif()
+    if(DEFINED ENV{OCCT_ROOT} AND EXISTS "$ENV{OCCT_ROOT}")
         set(OCCT_ROOT "$ENV{OCCT_ROOT}")
     else()
         message(FATAL_ERROR
-            "OCCT_ROOT not set. "
-            "Use CMakePresets.json, -DOCCT_ROOT=..., or set OCCT_ROOT env var."
+            "OCCT_ROOT not set or directory does not exist. "
+            "Use CMakePresets.json, -DOCCT_ROOT=..., or set OCCT_ROOT env var, "
+            "and make sure the path points to an existing directory."
         )
     endif()
 endif()
