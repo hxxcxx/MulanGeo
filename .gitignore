@@ -5,6 +5,7 @@ Debug/
 Release/
 RelWithDebInfo/
 MinSizeRel/
+vcpkg_installed
 
 # 构建时生成的 include 目录（由 CMake 从源文件复制）
 include/
