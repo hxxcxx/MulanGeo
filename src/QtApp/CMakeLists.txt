@@ -5,19 +5,25 @@ add_executable(${PROJECT_NAME}
     main.cpp
     MainWindow.cpp
     MainWindow.h
+    RenderWidget.h
+    RenderWidget.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    Engine
     IO
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
-    Qt6::OpenGLWidgets
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_BINARY_DIR}/include
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    SHADER_DIR="${CMAKE_SOURCE_DIR}/build/shaders"
 )
 
 # ── Post-build: copy OCCT DLLs ──

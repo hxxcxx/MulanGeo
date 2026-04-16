@@ -188,11 +188,16 @@ struct GraphicsPipelineDesc {
 // 由 Device 创建，通过 CommandList::setPipelineState() 绑定。
 // ============================================================
 
+class SwapChain;
+
 class PipelineState {
 public:
     virtual ~PipelineState() = default;
 
     virtual const GraphicsPipelineDesc& desc() const = 0;
+
+    /// 在 SwapChain 就绪后完成管线构建（VK 需要 renderPass，GL 可 noop）
+    virtual void finalize(SwapChain* swapchain) = 0;
 
     // 便捷查询
     PrimitiveTopology topology() const { return desc().topology; }

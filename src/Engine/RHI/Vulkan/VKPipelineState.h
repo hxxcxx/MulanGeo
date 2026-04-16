@@ -9,6 +9,7 @@
 
 #include "../PipelineState.h"
 #include "VkConvert.h"
+#include "VKSwapChain.h"
 
 namespace MulanGeo::Engine {
 
@@ -28,6 +29,13 @@ public:
 
     vk::Pipeline pipeline() const { return m_pipeline; }
     vk::PipelineLayout layout() const { return m_layout; }
+    vk::DescriptorSetLayout descriptorSetLayout() const { return m_descriptorSetLayout; }
+
+    /// RHI 接口：通过 SwapChain 获取 renderPass 并构建管线
+    void finalize(SwapChain* swapchain) override {
+        auto* vkSC = static_cast<VKSwapChain*>(swapchain);
+        build(vkSC->renderPass());
+    }
 
     // 延迟构建 — 需要 renderPass 信息
     void build(vk::RenderPass renderPass, uint32_t subpass = 0) {

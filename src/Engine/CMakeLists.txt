@@ -1,6 +1,7 @@
 # Engine - 渲染后端与场景管理（静态库）
 add_library(Engine STATIC
     RHI/vertex_layout_test.cpp
+    RHI/DeviceFactory.cpp
     Math/Mat4.cpp
     RHI/Vulkan/VKDevice.cpp
 )
