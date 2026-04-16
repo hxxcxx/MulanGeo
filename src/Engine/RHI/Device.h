@@ -1,6 +1,6 @@
 /**
  * @file Device.h
- * @brief RHI设备基类，GPU资源创建入口
+ * @brief RHI设备基类，GPU资源创建入口与帧循环接口
  * @author hxxcxx
  * @date 2026-04-15
  */
@@ -14,9 +14,11 @@
 #include "Shader.h"
 #include "SwapChain.h"
 #include "Texture.h"
+#include "../Window.h"
 
 #include <cstdint>
 #include <string_view>
+#include <memory>
 
 namespace MulanGeo::Engine {
 
@@ -45,19 +47,36 @@ struct DeviceCapabilities {
 };
 
 // ============================================================
+// 设备创建参数 — 跨后端通用
+// ============================================================
+
+struct DeviceCreateInfo {
+    GraphicsBackend   backend          = GraphicsBackend::Vulkan;
+    NativeWindowHandle window           = {};
+    RenderConfig       renderConfig     = {};
+    bool               enableValidation = true;
+    const char*        appName          = "MulanGeo";
+};
+
+// ============================================================
 // RHI 设备基类
 //
-// 所有 GPU 资源的工厂。后端实现继承此类。
+// 所有 GPU 资源的工厂 + 帧循环管理。
+// 后端实现继承此类，UI 层只依赖此接口。
 // ============================================================
 
 class RHIDevice {
 public:
     virtual ~RHIDevice() = default;
 
+    // --- 工厂函数（根据 backend 创建具体实现）---
+    static std::unique_ptr<RHIDevice> create(const DeviceCreateInfo& ci);
+
     // --- 设备信息 ---
 
     virtual GraphicsBackend backend() const = 0;
     virtual const DeviceCapabilities& capabilities() const = 0;
+    virtual const RenderConfig& renderConfig() const = 0;
 
     // --- 资源创建 ---
 
@@ -86,7 +105,6 @@ public:
                                      Fence* fence = nullptr,
                                      uint64_t fenceValue = 0) = 0;
 
-    // 单个 CommandList 的便捷接口
     void executeCommandList(CommandList* cmdList,
                             Fence* fence = nullptr,
                             uint64_t fenceValue = 0) {
@@ -96,6 +114,44 @@ public:
     // --- 等待 GPU 空闲 ---
 
     virtual void waitIdle() = 0;
+
+    // ============================================================
+    // 帧循环接口（UI 层的标准渲染流程）
+    //
+    //   device->beginFrame();
+    //   auto* cmd = device->frameCommandList();
+    //   cmd->begin();
+    //   swapchain->beginRenderPass(cmd);
+    //   // ... draw calls ...
+    //   swapchain->endRenderPass(cmd);
+    //   cmd->end();
+    //   device->submitAndPresent(swapchain);
+    // ============================================================
+
+    /// 每帧开头：等待上一轮完成、acquire next image、重置资源
+    virtual void beginFrame() = 0;
+
+    /// 获取当前帧的 CommandList（已 reset，可直接 begin）
+    virtual CommandList* frameCommandList() = 0;
+
+    /// 提交当前帧命令 + present
+    virtual void submitAndPresent(SwapChain* swapchain) = 0;
+
+    // ============================================================
+    // Descriptor 绑定（UBO / Texture 统一绑定接口）
+    // ============================================================
+
+    /// 将一组 UBO 绑定到当前管线（VK: allocate descriptor set + bind）
+    struct UniformBufferBind {
+        uint32_t binding;
+        Buffer*  buffer;
+        uint32_t offset;
+        uint32_t size;
+    };
+
+    virtual void bindUniformBuffers(CommandList* cmd, PipelineState* pso,
+                                    const UniformBufferBind* binds,
+                                    uint32_t count) = 0;
 
 protected:
     RHIDevice() = default;

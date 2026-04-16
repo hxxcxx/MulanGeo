@@ -43,6 +43,16 @@ public:
         init(ci);
     }
 
+    /// 从通用 DeviceCreateInfo 构造（供 RHIDevice::create 工厂调用）
+    explicit VKDevice(const DeviceCreateInfo& ci) {
+        CreateInfo vkCI;
+        vkCI.enableValidation = ci.enableValidation;
+        vkCI.window           = ci.window;
+        vkCI.renderConfig     = ci.renderConfig;
+        vkCI.appName          = ci.appName;
+        init(vkCI);
+    }
+
     ~VKDevice() {
         m_device.waitIdle();
 
@@ -168,31 +178,38 @@ public:
     }
 
     // --------------------------------------------------------
-    // 帧循环（高级接口）
+    // 帧循环（实现 RHI 接口）
     // --------------------------------------------------------
 
-    /// 每帧开头：等待上一轮完成、重置命令缓冲区和 descriptor pool
-    void beginFrame() {
+    void beginFrame() override {
         auto& frame = currentFrameContext();
         frame.waitForFence();
         frame.resetFence();
         frame.resetCommandBuffer();
 
         m_descriptorAllocator->resetPools();
+
+        // 重新包装当前帧的 command buffer
+        m_frameCmdList = std::make_unique<VKCommandList>(frame.cmdBuffer());
+
+        // acquire next image
+        if (!m_swapChains.empty()) {
+            auto* sc = m_swapChains[0];
+            sc->acquireNextImage(frame.imageAvailable());
+        }
     }
 
-    /// 获取当前帧的主 command buffer
-    vk::CommandBuffer frameCmdBuffer() {
-        return currentFrameContext().cmdBuffer();
+    CommandList* frameCommandList() override {
+        return m_frameCmdList.get();
     }
 
-    /// 提交当前帧 + present（完整渲染循环）
-    void presentFrame(VKSwapChain* swapchain) {
+    void submitAndPresent(SwapChain* swapchain) override {
+        auto* vkSC  = static_cast<VKSwapChain*>(swapchain);
         auto& frame = currentFrameContext();
 
         vk::SubmitInfo submitInfo;
         submitInfo.commandBufferCount = 1;
-        vk::CommandBuffer cmdBuf = frame.cmdBuffer();
+        vk::CommandBuffer cmdBuf = static_cast<VKCommandList*>(m_frameCmdList.get())->cmdBuffer();
         submitInfo.pCommandBuffers = &cmdBuf;
 
         vk::Semaphore waitSemaphores[] = { frame.imageAvailable() };
@@ -209,7 +226,7 @@ public:
 
         m_graphicsQueue.submit(submitInfo, frame.inFlightFence());
 
-        swapchain->presentWithSemaphores(frame.renderFinished());
+        vkSC->presentWithSemaphores(frame.renderFinished());
 
         m_currentFrame = (m_currentFrame + 1) % m_frameCount;
     }
@@ -229,6 +246,32 @@ public:
     uint32_t                    currentFrameIndex()   const { return m_currentFrame; }
     const RenderConfig&         renderConfig()        const { return m_renderConfig; }
 
+    // --------------------------------------------------------
+    // Descriptor 绑定（RHI 接口实现）
+    // --------------------------------------------------------
+
+    void bindUniformBuffers(CommandList* cmd, PipelineState* pso,
+                            const UniformBufferBind* binds,
+                            uint32_t count) override {
+        auto* vkPso  = static_cast<VKPipelineState*>(pso);
+        auto* vkCmd  = static_cast<VKCommandList*>(cmd);
+
+        // 分配 descriptor set
+        vk::DescriptorSet descSet = m_descriptorAllocator->allocate(
+            vkPso->descriptorSetLayout());
+
+        // 写入每个 UBO binding
+        for (uint32_t i = 0; i < count; ++i) {
+            auto* vkBuf = static_cast<VKBuffer*>(binds[i].buffer);
+            m_descriptorAllocator->bindUniformBuffer(
+                descSet, binds[i].binding,
+                vkBuf->vkBuffer(), binds[i].offset, binds[i].size);
+        }
+
+        // 绑定到命令缓冲
+        vkCmd->bindDescriptorSet(vkPso->layout(), descSet);
+    }
+
 private:
     void init(const CreateInfo& ci);
     void shutdown();
@@ -244,6 +287,9 @@ private:
                 std::make_unique<VKFrameContext>(m_device, m_graphicsQueueFamily));
         }
         m_currentFrame = 0;
+        // 创建帧命令列表（外部 buffer 模式，beginFrame 时更新实际 buffer）
+        m_frameCmdList = std::make_unique<VKCommandList>(
+            currentFrameContext().cmdBuffer());
     }
 
     // --- Vulkan 核心 ---
@@ -267,6 +313,7 @@ private:
     std::unique_ptr<VKUploadContext>             m_uploadContext;
     std::vector<std::unique_ptr<VKFrameContext>> m_frameContexts;
     std::unique_ptr<VKDescriptorAllocator>       m_descriptorAllocator;
+    std::unique_ptr<VKCommandList>               m_frameCmdList;  ///< 帧命令列表包装
 
     uint32_t                    m_frameCount   = 2;
     uint32_t                    m_currentFrame = 0;

@@ -10,6 +10,7 @@
 #include "../SwapChain.h"
 #include "../../Window.h"
 #include "VkConvert.h"
+#include "VKCommandList.h"
 
 namespace MulanGeo::Engine {
 
@@ -85,6 +86,27 @@ public:
         presentInfo.pImageIndices  = &m_currentImageIndex;
 
         m_params.presentQueue.presentKHR(&presentInfo);
+    }
+
+    // --------------------------------------------------------
+    // RenderPass（RHI 接口实现）
+    // --------------------------------------------------------
+
+    void beginRenderPass(CommandList* cmd) override {
+        auto* vkCmd = static_cast<VKCommandList*>(cmd);
+        auto& cc = m_renderConfig.clearColor;
+        vkCmd->beginRenderPass(
+            m_renderPass,
+            m_framebuffers[m_currentImageIndex],
+            m_swapchainExtent.width,
+            m_swapchainExtent.height,
+            { cc[0], cc[1], cc[2], cc[3] },
+            1.0f);
+    }
+
+    void endRenderPass(CommandList* cmd) override {
+        auto* vkCmd = static_cast<VKCommandList*>(cmd);
+        vkCmd->endRenderPass();
     }
 
     void resize(uint32_t width, uint32_t height) override {
