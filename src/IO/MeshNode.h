@@ -1,8 +1,8 @@
-/*
- * 网格节点 — 持有 IO 层的 MeshPart 引用
- *
- * MeshNode 属于 IO 模块，因为它直接关联 IO::MeshPart。
- * 继承自 Engine::SceneNode，通过 as<MeshNode>() 安全转换。
+/**
+ * @file MeshNode.h
+ * @brief 网格节点，持有IO层MeshPart引用的场景节点
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

@@ -1,13 +1,8 @@
-/*
- * 命令列表 — GPU 命令录制接口
- *
- * 定义 CommandList 基类，负责所有渲染命令的录制：
- * 设置管线状态、绑定缓冲区、绘制、资源屏障等。
- *
- * 设计原则：
- * - Buffer/Texture 不提供 bind()，由 CommandList 统一绑定
- * - 支持多后端（GL/VK/D3D12）各自实现
- * - 命令录制与提交分离
+/**
+ * @file CommandList.h
+ * @brief GPU命令录制接口，支持多后端实现
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

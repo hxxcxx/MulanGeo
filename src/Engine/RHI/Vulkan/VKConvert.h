@@ -1,5 +1,8 @@
-/*
- * Vulkan 类型转换工具 — RHI 枚举 → Vulkan 枚举
+/**
+ * @file VKConvert.h
+ * @brief Vulkan类型转换工具，RHI枚举到Vulkan枚举的映射
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

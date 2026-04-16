@@ -1,26 +1,8 @@
-/*
- * 场景渲染器 — 遍历 RenderQueue，录制 RHI 绘制命令
- *
- * 职责：
- * - 接收 RenderQueue + Camera，产生 CommandList 中的绘制命令
- * - 管理 GeometryCache（raw bytes → GPU buffer）
- * - 管理渲染模式对应的 PipelineState
- * - 不持有窗口/交换链
- *
- * 完全不感知任何 IO 类型。
- *
- * 使用流程：
- *   // 1. IO 层收集
- *   SceneAdapter adapter;
- *   RenderQueue queue;
- *   adapter.collect(scene, camera, queue);
- *
- *   // 2. Engine 层渲染
- *   SceneRenderer renderer(device);
- *   renderer.setSolidPipeline(pso);
- *   cmdList->begin();
- *   renderer.render(queue, camera, cmdList);
- *   cmdList->end();
+/**
+ * @file SceneRenderer.h
+ * @brief 场景渲染器，遍历RenderQueue录制RHI绘制命令
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

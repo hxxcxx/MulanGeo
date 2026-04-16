@@ -1,14 +1,8 @@
-/*
- * 场景适配器 — IO 层和 Engine 渲染层的桥接
- *
- * 职责：
- * - 遍历 Scene 树，识别 MeshNode
- * - 将 IO::MeshPart 转换为 Engine::RenderGeometry
- * - 视锥体裁剪
- * - 填充 RenderQueue 交给 Renderer
- *
- * 这是唯一一个同时知道 IO::MeshNode 和 Engine::Render* 的地方。
- * 依赖方向：IO → Engine（单向正确）
+/**
+ * @file SceneAdapter.h
+ * @brief 场景适配器，IO层与Engine渲染层的桥接
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

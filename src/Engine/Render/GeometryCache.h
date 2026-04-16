@@ -1,11 +1,8 @@
-/*
- * 几何 GPU 缓存 — RenderGeometry → GPU VertexBuffer/IndexBuffer
- *
- * 通用的 raw bytes → GPU buffer 缓存。
- * 以数据指针为 key（不拥有数据，调用方保证生命周期稳定）。
- * 同一份几何数据只上传一次，后续帧复用。
- *
- * 不依赖任何 IO 类型。
+/**
+ * @file GeometryCache.h
+ * @brief 几何数据GPU缓存，避免重复上传顶点与索引缓冲区
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

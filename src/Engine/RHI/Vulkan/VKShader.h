@@ -1,5 +1,8 @@
-/*
- * Vulkan Shader 实现
+/**
+ * @file VKShader.h
+ * @brief Vulkan着色器实现
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

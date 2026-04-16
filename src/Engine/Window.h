@@ -1,13 +1,8 @@
-/*
- * 平台无关窗口接口 — RHI 渲染目标抽象
- *
- * 定义：
- * - NativeWindowHandle: 平台相关的原生窗口句柄（tagged union）
- * - RenderConfig: 渲染配置（背景色、抗锯齿、VSync 等）
- * - IWindow: 窗口抽象基类，RHI 只依赖此接口
- *
- * IWindow 只描述"窗口是什么"（句柄、尺寸、渲染配置），
- * 不负责事件循环 — 事件循环由外部框架（Qt / Win32 消息泵 / xcb）处理。
+/**
+ * @file Window.h
+ * @brief 平台无关窗口接口，RHI渲染目标抽象
+ * @author hxxcxx
+ * @date 2026-04-16
  */
 
 #pragma once

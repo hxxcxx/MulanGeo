@@ -1,16 +1,8 @@
-/*
- * Vulkan Descriptor 分配器 — Pool 管理与 Set 分配
- *
- * 负责：
- * - 管理 vk::DescriptorPool（按需增长，用尽时自动创建新 pool）
- * - 从 pool 中分配 descriptor set
- * - 每 frame 开始时 reset pool（所有 set 自动失效）
- *
- * 使用方式：
- *   1. beginFrame() — reset 所有 pool
- *   2. allocate(layout) — 分配 descriptor set
- *   3. write/set 绑定 — 填充 descriptor set
- *   4. 帧结束 — 不需要手动释放
+/**
+ * @file VKDescriptorAllocator.h
+ * @brief Vulkan Descriptor分配器，管理描述符池与集合分配
+ * @author hxxcxx
+ * @date 2026-04-16
  */
 
 #pragma once

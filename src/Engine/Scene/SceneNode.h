@@ -1,11 +1,8 @@
-/*
- * 场景节点 — 场景层级的基本单元
- *
- * SceneNode (基类) — 层级、变换、可见性、拾取
- *   └── IO::MeshNode (IO 模块定义) — 持有网格数据
- *
- * Engine 只定义 SceneNode 基类，不感知任何派生类。
- * 派生类由上层模块（如 IO）自行扩展，通过 NodeType + as<T>() 识别。
+/**
+ * @file SceneNode.h
+ * @brief 场景节点基类，层级、变换与可见性管理
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

@@ -1,5 +1,8 @@
-/*
- * Vulkan 后端预编译头 — 共享的 Vulkan 头文件包含与通用工具
+/**
+ * @file VkCommon.h
+ * @brief Vulkan后端预编译头，共享头文件包含与通用工具
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

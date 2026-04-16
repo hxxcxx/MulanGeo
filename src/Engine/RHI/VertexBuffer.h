@@ -1,8 +1,8 @@
-/*
- * 顶点缓冲 — 运行时顶点数据访问与构建
- *
- * 提供 VertexElement（类型化视图）、VertexBufferView（只读访问器）、
- * VertexBufferBuilder（可变构建器）及颜色打包工具。
+/**
+ * @file VertexBuffer.h
+ * @brief 运行时顶点数据访问与构建工具
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

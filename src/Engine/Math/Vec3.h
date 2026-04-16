@@ -1,7 +1,8 @@
-/*
- * 三维向量 — 基础几何运算
- *
- * 列主序存储，右手坐标系，CAD 查看器最小需求。
+/**
+ * @file Vec3.h
+ * @brief 三维向量，基础几何运算
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

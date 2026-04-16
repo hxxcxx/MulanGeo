@@ -1,8 +1,8 @@
-/*
- * 顶点语义 — 顶点属性的语义槽位定义
- *
- * 定义顶点属性的含义（位置、法线、纹理坐标等）
- * 及其到 HLSL/GLSL 名称的映射。
+/**
+ * @file VertexSemantic.h
+ * @brief 顶点语义槽位定义，描述顶点属性含义
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

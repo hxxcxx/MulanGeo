@@ -1,8 +1,8 @@
-/*
- * 纹理 — 资源描述与接口定义
- *
- * 定义 TextureFormat、TextureUsage、TextureDesc
- * 及 Texture 基类。
+/**
+ * @file Texture.h
+ * @brief 纹理资源描述与接口定义
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

@@ -1,9 +1,8 @@
-/*
- * GPU 缓冲区 — 资源描述与接口定义
- *
- * 定义 BufferDesc（描述结构体）、BufferUsage、BufferBindFlags 等，
- * 以及 Buffer 基类（纯数据容器，不包含绑定操作）。
- * 绑定和操作由 CommandList 负责。
+/**
+ * @file Buffer.h
+ * @brief GPU缓冲区资源描述与接口定义
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

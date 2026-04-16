@@ -1,3 +1,9 @@
+/**
+ * @file MeshData.h
+ * @brief 网格数据结构定义，顶点、索引与子网格
+ * @author hxxcxx
+ * @date 2026-04-15
+ */
 #pragma once
 #include <vector>
 #include <string>

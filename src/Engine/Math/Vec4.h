@@ -1,5 +1,8 @@
-/*
- * 四维向量 — 齐次坐标、颜色
+/**
+ * @file Vec4.h
+ * @brief 四维向量，用于齐次坐标与颜色表示
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

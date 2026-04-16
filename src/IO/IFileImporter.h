@@ -1,3 +1,9 @@
+/**
+ * @file IFileImporter.h
+ * @brief 文件导入器接口定义
+ * @author hxxcxx
+ * @date 2026-04-15
+ */
 #pragma once
 #include <string>
 #include <vector>

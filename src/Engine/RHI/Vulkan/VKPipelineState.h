@@ -1,5 +1,8 @@
-/*
- * Vulkan PipelineState 实现
+/**
+ * @file VKPipelineState.h
+ * @brief Vulkan管线状态实现
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

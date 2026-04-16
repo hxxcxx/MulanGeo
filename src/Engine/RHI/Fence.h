@@ -1,8 +1,8 @@
-/*
- * 栅栏 — CPU/GPU 同步原语
- *
- * 用于渲染线程与主线程之间的同步，
- * 以及 CommandList 提交后等待 GPU 完成。
+/**
+ * @file Fence.h
+ * @brief CPU/GPU同步栅栏原语
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

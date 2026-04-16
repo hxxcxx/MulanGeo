@@ -1,3 +1,9 @@
+/**
+ * @file MainWindow.h
+ * @brief Qt主窗口，集成OpenGL渲染控件
+ * @author hxxcxx
+ * @date 2026-04-15
+ */
 #pragma once
 
 #include <QMainWindow>

@@ -1,5 +1,8 @@
-/*
- * Vulkan Buffer 实现
+/**
+ * @file VKBuffer.h
+ * @brief Vulkan缓冲区实现
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

@@ -1,8 +1,8 @@
-/*
- * 视锥体 — 6 个裁剪平面，用于可见性剔除
- *
- * 从 viewProjection 矩阵提取平面方程。
- * 支持 AABB 相交测试，用于场景节点裁剪。
+/**
+ * @file Frustum.h
+ * @brief 视锥体裁剪平面，用于可见性剔除
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

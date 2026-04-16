@@ -1,11 +1,8 @@
-/*
- * 管线状态 — 渲染状态集与接口定义
- *
- * 定义所有渲染状态枚举（拓扑、剔除、深度、混合等）、
- * GraphicsPipelineDesc 描述结构体及 PipelineState 基类。
- *
- * PSO 涵盖一次绘制所需的全部粗粒度状态，
- * 由 Device 创建，CommandList 绑定。
+/**
+ * @file PipelineState.h
+ * @brief 渲染管线状态集与接口定义
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

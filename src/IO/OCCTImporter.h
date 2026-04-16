@@ -1,3 +1,9 @@
+/**
+ * @file OCCTImporter.h
+ * @brief OpenCASCADE文件导入器实现
+ * @author hxxcxx
+ * @date 2026-04-15
+ */
 #pragma once
 #include "IFileImporter.h"
 

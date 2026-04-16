@@ -1,7 +1,8 @@
-/*
- * 顶点数据格式 — 枚举与特征
- *
- * 定义顶点属性在内存中的存储方式（float、half、归一化、压缩等）
+/**
+ * @file VertexFormat.h
+ * @brief 顶点数据格式枚举与特征定义
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

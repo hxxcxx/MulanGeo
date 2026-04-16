@@ -1,13 +1,8 @@
-/*
- * RHI 设备 — 资源工厂与后端入口
- *
- * 定义 RHIDevice 基类，所有 GPU 资源的创建入口。
- * 每个后端（GL/VK/D3D12）提供自己的实现。
- *
- * 设计原则：
- * - Device 只负责创建资源，不负责绑定或绘制
- * - 绑定和绘制由 CommandList 负责
- * - SwapChain 由 Device 创建，管理前后缓冲
+/**
+ * @file Device.h
+ * @brief RHI设备基类，GPU资源创建入口
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

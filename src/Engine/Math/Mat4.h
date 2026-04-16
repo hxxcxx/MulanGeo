@@ -1,8 +1,8 @@
-/*
- * 4x4 矩阵 — 列主序存储（与 GPU 一致）
- *
- * 提供：乘法、逆矩阵、lookAt、透视/正交投影、平移/旋转/缩放。
- * 右手坐标系，NDC z ∈ [-1, 1]（Vulkan/GL 默认）。
+/**
+ * @file Mat4.h
+ * @brief 4x4列主序矩阵，提供投影、变换等运算
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

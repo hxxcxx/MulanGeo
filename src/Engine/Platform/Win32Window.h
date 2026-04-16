@@ -1,33 +1,11 @@
-/*
- * Win32 原生窗口 — IWindow 的 Windows 实现
+/**
+ * @file Win32Window.h
+ * @brief Win32 原生窗口，IWindow 的 Windows 平台实现
+ * @author hxxcxx
+ * @date 2026-04-16
  *
- * 轻量级 Win32 窗口，直接创建 HWND。
- * 可脱离 Qt / SDL / GLFW 独立使用。
- *
- * IWindow 不定义事件循环接口，Win32Window 自行提供
- * pollEvents() / shouldClose() 供外部主循环使用。
- *
- * 使用方式：
- *   Win32Window::Desc desc;
- *   desc.title  = L"MulanGeo";
- *   desc.width  = 1280;
- *   desc.height = 720;
- *
- *   Win32Window window(desc);
- *
- *   // 传给 RHI
- *   VKDevice::CreateInfo ci;
- *   ci.window = window.nativeHandle();
- *   ci.renderConfig = window.renderConfig;
- *   auto* device = new VKDevice(ci);
- *
- *   // 主循环
- *   while (!window.shouldClose()) {
- *       window.pollEvents();
- *       device->beginFrame();
- *       // render...
- *       device->presentFrame(swapchain);
- *   }
+ * 直接创建 HWND，可脱离 Qt / SDL / GLFW 独立使用。
+ * IWindow 只定义窗口属性（句柄、尺寸），事件循环由外部主循环负责。
  */
 
 #pragma once

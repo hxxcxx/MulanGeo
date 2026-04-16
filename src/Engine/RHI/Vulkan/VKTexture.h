@@ -1,5 +1,8 @@
-/*
- * Vulkan Texture 实现
+/**
+ * @file VKTexture.h
+ * @brief Vulkan纹理实现
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

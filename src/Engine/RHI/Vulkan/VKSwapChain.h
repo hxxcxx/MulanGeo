@@ -1,8 +1,8 @@
-/*
- * Vulkan SwapChain 实现
- *
- * 管理 swapchain 图像、render pass、framebuffer。
- * 同步对象已移至 VKFrameContext，由 VKDevice 统一管理。
+/**
+ * @file VKSwapChain.h
+ * @brief Vulkan交换链实现，管理图像与帧缓冲
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

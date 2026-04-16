@@ -1,8 +1,8 @@
-/*
- * 交换链 — 前后缓冲区管理与呈现
- *
- * 定义 SwapChainDesc、SwapChain 基类。
- * 负责创建/管理渲染目标、present、resize。
+/**
+ * @file SwapChain.h
+ * @brief 交换链，前后缓冲区管理与呈现
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

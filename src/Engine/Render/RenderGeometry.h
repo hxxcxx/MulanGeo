@@ -1,12 +1,8 @@
-/*
- * 渲染几何数据 — GPU 无关的通用可绘制数据描述
- *
- * RenderGeometry: 顶点/索引的原始字节 + 布局描述 + 拓扑类型
- * RenderItem:     一次绘制所需的全部数据（几何 + 变换 + 元数据）
- * RenderQueue:    RenderItem 集合，由 SceneAdapter 填充，Renderer 消费
- *
- * 不依赖任何 IO 类型，不依赖任何具体数据来源。
- * 三角网格、线框、2D 图纸、文字 quad、点云等统一表示。
+/**
+ * @file RenderGeometry.h
+ * @brief GPU无关的通用可绘制几何数据描述
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

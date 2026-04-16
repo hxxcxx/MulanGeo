@@ -1,5 +1,8 @@
-/*
- * Vulkan Fence 实现
+/**
+ * @file VKFence.h
+ * @brief Vulkan栅栏实现
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

@@ -1,13 +1,8 @@
-/*
- * Vulkan 帧上下文 — 每帧独立的同步与命令资源
- *
- * 每一帧拥有自己的：
- * - CommandPool + 主 CommandBuffer（可 reset）
- * - ImageAvailable / RenderFinished Semaphore
- * - InFlightFence（CPU 端等待 GPU 完成）
- *
- * VKDevice 持有 N 个 FrameContext（N = swapchain image count），
- * 渲染循环按帧索引轮转。
+/**
+ * @file VKFrameContext.h
+ * @brief Vulkan帧上下文，每帧独立的同步与命令资源
+ * @author hxxcxx
+ * @date 2026-04-16
  */
 
 #pragma once

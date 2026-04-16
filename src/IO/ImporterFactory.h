@@ -1,3 +1,9 @@
+/**
+ * @file ImporterFactory.h
+ * @brief 文件导入器工厂，按扩展名创建对应导入器
+ * @author hxxcxx
+ * @date 2026-04-15
+ */
 #pragma once
 #include <memory>
 #include <string>

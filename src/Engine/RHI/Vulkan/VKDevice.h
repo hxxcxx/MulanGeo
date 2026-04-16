@@ -1,13 +1,8 @@
-/*
- * Vulkan Device 实现 — 资源工厂与后端入口
- *
- * 管理 VkInstance、PhysicalDevice、Device、VMA Allocator。
- * 所有 GPU 资源的创建/销毁入口。
- *
- * 集成私有组件：
- * - VKUploadContext       — staging buffer 上传
- * - VKFrameContext[]      — 每帧同步/命令资源轮转
- * - VKDescriptorAllocator — descriptor set 分配
+/**
+ * @file VKDevice.h
+ * @brief Vulkan设备实现，资源工厂与后端入口
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

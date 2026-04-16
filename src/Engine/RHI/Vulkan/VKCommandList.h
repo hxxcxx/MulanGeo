@@ -1,9 +1,8 @@
-/*
- * Vulkan CommandList 实现
- *
- * 支持两种模式：
- * 1. 独立模式 — 自己管理 command pool/buffer（createCommandList() 创建）
- * 2. 外部 buffer — 引用 VKFrameContext 的 command buffer（避免重复分配）
+/**
+ * @file VKCommandList.h
+ * @brief Vulkan命令列表实现，支持独立与外部buffer两种模式
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

@@ -1,14 +1,8 @@
-/*
- * 轨道相机 — CAD 查看器的标准交互模式
- *
- * 围绕目标点旋转（orbit）、平移（pan）、缩放（zoom）。
- * 纯数学封装，不依赖任何窗口系统。
- *
- * 使用方式：
- *   1. 设置 viewport 大小（setWidthHeight）
- *   2. 通过 orbit/pan/zoom 响应用户输入
- *   3. 每帧调用 viewMatrix/projectionMatrix 获取矩阵
- *   4. frustum() 用于场景裁剪
+/**
+ * @file Camera.h
+ * @brief 轨道相机，支持旋转、平移、缩放交互
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

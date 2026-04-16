@@ -1,8 +1,8 @@
-/*
- * 着色器 — 资源描述与接口定义
- *
- * 定义 ShaderType、ShaderSourceLanguage、ShaderDesc
- * 及 Shader 基类。
+/**
+ * @file Shader.h
+ * @brief 着色器资源描述与接口定义
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

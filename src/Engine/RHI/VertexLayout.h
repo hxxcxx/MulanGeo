@@ -1,8 +1,8 @@
-/*
- * 顶点布局 — 顶点结构的完整描述
- *
- * 定义 VertexAttribute、VertexLayout 构建器、IndexType、
- * 预定义 CAD 布局及编译期验证。
+/**
+ * @file VertexLayout.h
+ * @brief 顶点布局描述，定义顶点结构的完整内存布局
+ * @author hxxcxx
+ * @date 2026-04-15
  */
 
 #pragma once

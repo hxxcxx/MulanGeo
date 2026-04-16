@@ -1,10 +1,8 @@
-/*
- * Vulkan 上传管理器 — Staging Buffer 池 + GPU 传输
- *
- * 负责：
- * - 管理 staging buffer 池，避免频繁 alloc/free
- * - 将 CPU 数据上传到 GPU-only 的 buffer/image
- * - 支持同步（fence 等待）和异步（外部 fence）两种模式
+/**
+ * @file VKUploadContext.h
+ * @brief Vulkan上传管理器，Staging Buffer池与GPU传输
+ * @author hxxcxx
+ * @date 2026-04-16
  */
 
 #pragma once
