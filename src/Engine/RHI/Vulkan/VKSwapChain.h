@@ -1,10 +1,14 @@
 /*
  * Vulkan SwapChain 实现
+ *
+ * 管理 swapchain 图像、render pass、framebuffer。
+ * 同步对象已移至 VKFrameContext，由 VKDevice 统一管理。
  */
 
 #pragma once
 
 #include "../SwapChain.h"
+#include "../../Window.h"
 #include "VkConvert.h"
 
 namespace MulanGeo::Engine {
@@ -20,16 +24,17 @@ public:
         uint32_t           presentQueueFamily;
         vk::Queue          graphicsQueue;
         vk::Queue          presentQueue;
-        void*              windowHandle;      // HWND on Windows
+        vk::SurfaceKHR     surface;            // 由 VKDevice 创建，SwapChain 不负责生命周期
     };
 
-    VKSwapChain(const SwapChainDesc& desc, const InitParams& params)
-        : m_desc(desc), m_params(params)
+    VKSwapChain(const SwapChainDesc& desc, const InitParams& params,
+                const RenderConfig& renderConfig)
+        : m_desc(desc), m_params(params), m_surface(params.surface)
+        , m_renderConfig(renderConfig)
     {
         createSwapChain();
         createRenderPass();
         createFramebuffers();
-        createSyncObjects();
     }
 
     ~VKSwapChain() {
@@ -39,18 +44,47 @@ public:
     const SwapChainDesc& desc() const override { return m_desc; }
 
     Texture* currentBackBuffer() override {
-        return m_backBuffers[m_currentFrame].get();
+        if (m_currentImageIndex < m_backBuffers.size())
+            return m_backBuffers[m_currentImageIndex].get();
+        return nullptr;
     }
 
+    // --------------------------------------------------------
+    // 帧生命周期
+    // --------------------------------------------------------
+
+    /// 获取下一个可用 image（信号量由外部 VKFrameContext 提供）
+    bool acquireNextImage(vk::Semaphore imageAvailable) {
+        auto result = m_params.device.acquireNextImageKHR(
+            m_swapchain, UINT64_MAX, imageAvailable, nullptr);
+        if (result.result == vk::Result::eSuccess ||
+            result.result == vk::Result::eSuboptimalKHR) {
+            m_currentImageIndex = result.value;
+            return true;
+        }
+        return false;
+    }
+
+    /// 等待 renderFinished 后 present
+    void presentWithSemaphores(vk::Semaphore renderFinished) {
+        vk::PresentInfoKHR presentInfo;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores    = &renderFinished;
+        presentInfo.swapchainCount     = 1;
+        presentInfo.pSwapchains        = &m_swapchain;
+        presentInfo.pImageIndices      = &m_currentImageIndex;
+
+        m_params.presentQueue.presentKHR(&presentInfo);
+    }
+
+    /// 保留无信号量的简单 present（RHI 接口兼容）
     void present() override {
-        // 提交命令后 present
         vk::PresentInfoKHR presentInfo;
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains    = &m_swapchain;
         presentInfo.pImageIndices  = &m_currentImageIndex;
 
         m_params.presentQueue.presentKHR(&presentInfo);
-        m_currentFrame = (m_currentFrame + 1) % m_desc.bufferCount;
     }
 
     void resize(uint32_t width, uint32_t height) override {
@@ -65,34 +99,12 @@ public:
         createFramebuffers();
     }
 
-    // Vulkan 特有
-    vk::RenderPass renderPass() const { return m_renderPass; }
-    vk::Framebuffer currentFramebuffer() const {
-        return m_framebuffers[m_currentImageIndex];
-    }
+    // --- Vulkan 特有 ---
 
-    bool acquireNextImage() {
-        auto result = m_params.device.acquireNextImageKHR(
-            m_swapchain, UINT64_MAX,
-            m_imageAvailableSemaphores[m_currentFrame],
-            nullptr);
-        if (result.result == vk::Result::eSuccess ||
-            result.result == vk::Result::eSuboptimalKHR) {
-            m_currentImageIndex = result.value;
-            return true;
-        }
-        return false;
-    }
-
-    vk::Semaphore imageAvailableSemaphore() const {
-        return m_imageAvailableSemaphores[m_currentFrame];
-    }
-    vk::Semaphore renderFinishedSemaphore() const {
-        return m_renderFinishedSemaphores[m_currentFrame];
-    }
-    vk::Fence inFlightFence() const {
-        return m_inFlightFences[m_currentFrame];
-    }
+    vk::RenderPass   renderPass()         const { return m_renderPass; }
+    vk::Framebuffer  currentFramebuffer() const { return m_framebuffers[m_currentImageIndex]; }
+    uint32_t         imageCount()         const { return static_cast<uint32_t>(m_swapchainImages.size()); }
+    vk::Extent2D     extent()             const { return m_swapchainExtent; }
 
 private:
     void createSwapChain() {
@@ -263,21 +275,6 @@ private:
         }
     }
 
-    void createSyncObjects() {
-        m_imageAvailableSemaphores.resize(m_desc.bufferCount);
-        m_renderFinishedSemaphores.resize(m_desc.bufferCount);
-        m_inFlightFences.resize(m_desc.bufferCount);
-
-        vk::FenceCreateInfo fenceCI;
-        fenceCI.flags = vk::FenceCreateFlagBits::eSignaled;
-
-        for (uint32_t i = 0; i < m_desc.bufferCount; ++i) {
-            m_imageAvailableSemaphores[i] = m_params.device.createSemaphore({});
-            m_renderFinishedSemaphores[i] = m_params.device.createSemaphore({});
-            m_inFlightFences[i]           = m_params.device.createFence(fenceCI);
-        }
-    }
-
     void cleanup() {
         for (auto& fb : m_framebuffers)
             m_params.device.destroyFramebuffer(fb);
@@ -286,6 +283,9 @@ private:
         for (auto& iv : m_imageViews)
             m_params.device.destroyImageView(iv);
         m_imageViews.clear();
+
+        m_backBuffers.clear();
+        m_depthTexture.reset();
 
         if (m_renderPass) {
             m_params.device.destroyRenderPass(m_renderPass);
@@ -297,22 +297,13 @@ private:
             m_swapchain = nullptr;
         }
 
-        m_depthTexture.reset();
-
-        for (uint32_t i = 0; i < m_desc.bufferCount; ++i) {
-            if (m_imageAvailableSemaphores[i])
-                m_params.device.destroySemaphore(m_imageAvailableSemaphores[i]);
-            if (m_renderFinishedSemaphores[i])
-                m_params.device.destroySemaphore(m_renderFinishedSemaphores[i]);
-            if (m_inFlightFences[i])
-                m_params.device.destroyFence(m_inFlightFences[i]);
-        }
+        // 注意：m_surface 由 VKDevice 拥有，此处不销毁
     }
 
     SwapChainDesc    m_desc;
     InitParams       m_params;
 
-    vk::SurfaceKHR   m_surface;
+    vk::SurfaceKHR   m_surface;         // 引用，不拥有
     vk::SwapchainKHR m_swapchain;
     std::vector<vk::Image>     m_swapchainImages;
     std::vector<vk::ImageView> m_imageViews;
@@ -325,12 +316,8 @@ private:
     std::unique_ptr<VKTexture> m_depthTexture;
     std::vector<std::unique_ptr<VKTexture>> m_backBuffers;
 
-    std::vector<vk::Semaphore> m_imageAvailableSemaphores;
-    std::vector<vk::Semaphore> m_renderFinishedSemaphores;
-    std::vector<vk::Fence>     m_inFlightFences;
-
     uint32_t m_currentImageIndex = 0;
-    uint32_t m_currentFrame      = 0;
+    RenderConfig m_renderConfig;
 };
 
 } // namespace MulanGeo::Engine

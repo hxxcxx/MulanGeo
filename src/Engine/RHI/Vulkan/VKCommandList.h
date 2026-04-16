@@ -1,5 +1,9 @@
 /*
  * Vulkan CommandList 实现
+ *
+ * 支持两种模式：
+ * 1. 独立模式 — 自己管理 command pool/buffer（createCommandList() 创建）
+ * 2. 外部 buffer — 引用 VKFrameContext 的 command buffer（避免重复分配）
  */
 
 #pragma once
@@ -11,8 +15,10 @@ namespace MulanGeo::Engine {
 
 class VKCommandList : public CommandList {
 public:
+    /// 独立模式：自己创建 command pool + buffer
     VKCommandList(vk::Device device, uint32_t queueFamilyIndex)
         : m_device(device)
+        , m_ownsPool(true)
     {
         vk::CommandPoolCreateInfo poolCI;
         poolCI.flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
@@ -29,8 +35,14 @@ public:
         m_cmdBuffer = cmdBuffers[0];
     }
 
+    /// 外部 buffer 模式：引用 frameContext 的 command buffer
+    explicit VKCommandList(vk::CommandBuffer externalCmd)
+        : m_cmdBuffer(externalCmd)
+        , m_ownsPool(false)
+    {}
+
     ~VKCommandList() {
-        if (m_pool) {
+        if (m_ownsPool && m_pool) {
             m_device.freeCommandBuffers(m_pool, m_cmdBuffer);
             m_device.destroyCommandPool(m_pool);
         }
@@ -41,7 +53,9 @@ public:
     // --- 生命周期 ---
 
     void begin() override {
-        m_device.resetCommandPool(m_pool);
+        if (m_ownsPool) {
+            m_device.resetCommandPool(m_pool);
+        }
 
         vk::CommandBufferBeginInfo beginInfo;
         beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
@@ -186,11 +200,19 @@ public:
 
     vk::PipelineLayout currentLayout() const { return m_currentLayout; }
 
+    /// 绑定 descriptor set 到当前管线
+    void bindDescriptorSet(vk::PipelineLayout layout, vk::DescriptorSet set,
+                           uint32_t firstSet = 0) {
+        m_cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                       layout, firstSet, 1, &set, 0, nullptr);
+    }
+
 private:
     vk::Device          m_device;
     vk::CommandPool     m_pool;
     vk::CommandBuffer   m_cmdBuffer;
     vk::PipelineLayout  m_currentLayout;
+    bool                m_ownsPool;
 };
 
 } // namespace MulanGeo::Engine
