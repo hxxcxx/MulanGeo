@@ -21,6 +21,7 @@ add_library(Engine STATIC
     RHI/Vulkan/VKUploadContext.cpp
     RHI/Vulkan/VKSwapChain.cpp
     RHI/Vulkan/VKDevice.cpp
+    RHI/Vulkan/VKDeviceInit.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...
