@@ -53,13 +53,26 @@ SwapChain* VKDevice::createSwapChain(const SwapChainDesc& desc) {
     auto* swapchain = new VKSwapChain(desc, params, m_renderConfig);
     m_swapChains.push_back(swapchain);
 
-    initFrameContexts(m_frameCount);
+    if (m_frameContexts.empty()) {
+        initFrameContexts(m_frameCount);
+    }
 
     return swapchain;
 }
 
 Fence* VKDevice::createFence(uint64_t initialValue) {
     return new VKFence(m_device, initialValue);
+}
+
+RenderTarget* VKDevice::createRenderTarget(const RenderTargetDesc& desc) {
+    auto* rt = new VKRenderTarget(desc, m_device, m_allocator);
+
+    // 如果 frame contexts 还未初始化（无 SwapChain 时），在此初始化
+    if (m_frameContexts.empty()) {
+        initFrameContexts(m_frameCount);
+    }
+
+    return rt;
 }
 
 // ============================================================
@@ -72,6 +85,7 @@ void VKDevice::destroy(Shader* resource)         { delete static_cast<VKShader*>
 void VKDevice::destroy(PipelineState* resource)  { delete static_cast<VKPipelineState*>(resource); }
 void VKDevice::destroy(CommandList* resource)    { delete static_cast<VKCommandList*>(resource); }
 void VKDevice::destroy(Fence* resource)          { delete static_cast<VKFence*>(resource); }
+void VKDevice::destroy(RenderTarget* resource)   { delete static_cast<VKRenderTarget*>(resource); }
 
 void VKDevice::destroy(SwapChain* resource) {
     auto it = std::find(m_swapChains.begin(), m_swapChains.end(), resource);
@@ -164,6 +178,19 @@ void VKDevice::submitAndPresent(SwapChain* swapchain) {
     m_graphicsQueue.submit(submitInfo, frame.inFlightFence());
 
     vkSC->presentWithSemaphores(frame.renderFinished());
+
+    m_currentFrame = (m_currentFrame + 1) % m_frameCount;
+}
+
+void VKDevice::submitOffscreen() {
+    auto& frame = currentFrameContext();
+
+    vk::SubmitInfo submitInfo;
+    submitInfo.commandBufferCount = 1;
+    vk::CommandBuffer cmdBuf = static_cast<VKCommandList*>(m_frameCmdList.get())->cmdBuffer();
+    submitInfo.pCommandBuffers = &cmdBuf;
+
+    m_graphicsQueue.submit(submitInfo, frame.inFlightFence());
 
     m_currentFrame = (m_currentFrame + 1) % m_frameCount;
 }

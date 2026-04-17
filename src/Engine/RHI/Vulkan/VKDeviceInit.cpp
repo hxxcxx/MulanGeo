@@ -101,10 +101,11 @@ void VKDevice::createLogicalDevice(bool enableValidation) {
         queueCIs.push_back(qCI);
     }
 
-    // Device extensions
-    std::vector<const char*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    };
+    // Device extensions — 仅在有 surface 时需要 swapchain
+    std::vector<const char*> deviceExtensions;
+    if (m_surface) {
+        deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
 
     // Features
     vk::PhysicalDeviceFeatures features;
@@ -194,9 +195,12 @@ void VKDevice::init(const CreateInfo& ci) {
     appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion         = VK_API_VERSION_1_3;
 
-    std::vector<const char*> instanceExtensions = {
-        VK_KHR_SURFACE_EXTENSION_NAME,
-    };
+    std::vector<const char*> instanceExtensions;
+
+    // 仅在需要窗口时添加 Surface 扩展
+    if (ci.window.valid()) {
+        instanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    }
 
     // 根据窗口类型添加平台 Surface 扩展
     switch (ci.window.type) {

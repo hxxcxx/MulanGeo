@@ -1,14 +1,13 @@
 /**
  * @file RenderWidget.h
- * @brief 通用渲染控件，仅依赖 RHI 接口，无后端 specifics
+ * @brief Qt 渲染控件 — EngineView 的薄壳封装
  * @author hxxcxx
- * @date 2026-04-16
+ * @date 2026-04-17
  *
- * 职责：
- * - 通过 RHIDevice::create() 创建设备（工厂模式）
- * - 管理资源生命周期（Shader / PSO / UBO）
- * - 标准帧循环：beginFrame → renderPass → draw → submitAndPresent
- * - 鼠标交互 → Camera
+ * 职责（仅限 Qt 平台胶水）：
+ * - 将 Qt 事件翻译为 Engine::InputEvent
+ * - 驱动 EngineView 的生命周期（init / resize / renderFrame）
+ * - 不直接接触任何 RHI 类型
  */
 
 #pragma once
@@ -16,54 +15,14 @@
 #include <QWidget>
 #include <QTimer>
 
-#include <MulanGeo/Engine/RHI/Device.h>
-#include <MulanGeo/Engine/RHI/SwapChain.h>
-#include <MulanGeo/Engine/RHI/Buffer.h>
-#include <MulanGeo/Engine/RHI/Shader.h>
-#include <MulanGeo/Engine/RHI/PipelineState.h>
-#include <MulanGeo/Engine/RHI/VertexLayout.h>
-#include <MulanGeo/Engine/Scene/Camera.h>
-#include <MulanGeo/Engine/Window.h>
-#include <MulanGeo/Engine/Math/Mat4.h>
-#include <MulanGeo/Engine/Math/Vec3.h>
+#include <MulanGeo/Engine/Render/EngineView.h>
+#include <MulanGeo/Engine/Interaction/InputEvent.h>
 
 #include <memory>
-#include <vector>
 
 namespace MulanGeo::IO {
 struct ImportResult;
 }
-
-// ============================================================
-// GPU UBO 结构 — 与 shader Common.hlsli 对齐
-// ============================================================
-
-struct alignas(16) CameraUBO {
-    float view[16];
-    float projection[16];
-    float viewProjection[16];
-    float cameraPos[3];
-    float _pad0;
-};
-
-struct alignas(16) ObjectUBO {
-    float world[16];
-    float normalMat[9];
-    float _pad1[3];
-    uint32_t pickId;
-    float _pad2[3];
-};
-
-struct alignas(16) MaterialUBO {
-    float baseColor[3];
-    float _pad2;
-    float lightDir[3];
-    float _pad3;
-    float ambientColor[3];
-    float _pad4;
-    float wireColor[3];
-    float _pad5;
-};
 
 // ============================================================
 // RenderWidget
@@ -76,11 +35,14 @@ public:
     explicit RenderWidget(QWidget* parent = nullptr);
     ~RenderWidget();
 
-    /// 加载 mesh 数据到 GPU
+    /// 加载 mesh 数据（委托给 EngineView）
     void loadMesh(const MulanGeo::IO::ImportResult& result);
 
     /// 请求渲染下一帧
     void requestFrame();
+
+    /// 访问底层引擎视图（高级用法：切换 Operator 等）
+    MulanGeo::Engine::EngineView& engineView() { return m_view; }
 
 protected:
     void showEvent(QShowEvent* e) override;
@@ -88,67 +50,26 @@ protected:
     void paintEvent(QPaintEvent*) override;
 
     void mousePressEvent(QMouseEvent* e) override;
+    void mouseReleaseEvent(QMouseEvent* e) override;
     void mouseMoveEvent(QMouseEvent* e) override;
+    void mouseDoubleClickEvent(QMouseEvent* e) override;
     void wheelEvent(QWheelEvent* e) override;
+    void keyPressEvent(QKeyEvent* e) override;
+    void keyReleaseEvent(QKeyEvent* e) override;
 
 private:
-    /// 初始化 RHI 设备和资源
-    bool initRHI();
+    /// 将 Qt 鼠标按钮映射为 Engine::MouseButton
+    static MulanGeo::Engine::MouseButton translateButton(Qt::MouseButton btn);
 
-    /// 加载 SPIR-V 着色器
-    void loadShaders();
+    /// 将 Qt 按钮组合映射为 Engine::MouseButton 位掩码
+    static MulanGeo::Engine::MouseButton translateButtons(Qt::MouseButtons btns);
 
-    /// 创建管线状态
-    void createPSOs();
+    /// 将 Qt 键盘修饰键映射
+    static MulanGeo::Engine::KeyModifier translateModifiers(Qt::KeyboardModifiers mods);
 
-    /// 创建 UBO 缓冲区
-    void createUBOs();
+    /// 将 Qt 按键映射
+    static MulanGeo::Engine::Key translateKey(int qtKey);
 
-    /// 更新 Camera UBO
-    void updateCameraUBO();
-
-    /// 渲染一帧
-    void renderFrame();
-
-    /// 绘制所有 mesh
-    void drawMeshes();
-
-    /// 释放 GPU 资源
-    void cleanup();
-
-    // --------------------------------------------------------
-    // RHI 资源（后端无关）
-    // --------------------------------------------------------
-
-    std::unique_ptr<MulanGeo::Engine::RHIDevice>  m_device;
-    MulanGeo::Engine::SwapChain*                  m_swapchain  = nullptr;
-
-    // Shader
-    MulanGeo::Engine::Shader*                     m_solidVs    = nullptr;
-    MulanGeo::Engine::Shader*                     m_solidFs    = nullptr;
-
-    // PSO
-    MulanGeo::Engine::PipelineState*              m_solidPso   = nullptr;
-    MulanGeo::Engine::VertexLayout                m_vertexLayout;
-
-    // UBO
-    MulanGeo::Engine::Buffer*                     m_cameraBuffer   = nullptr;
-    MulanGeo::Engine::Buffer*                     m_objectBuffer   = nullptr;
-    MulanGeo::Engine::Buffer*                     m_materialBuffer = nullptr;
-
-    // Camera
-    MulanGeo::Engine::Camera                      m_camera;
-    QPoint                                        m_lastMousePos;
-
-    // GPU mesh 数据
-    struct GpuMesh {
-        MulanGeo::Engine::Buffer* vertexBuffer = nullptr;
-        MulanGeo::Engine::Buffer* indexBuffer  = nullptr;
-        uint32_t vertexCount = 0;
-        uint32_t indexCount  = 0;
-    };
-    std::vector<GpuMesh> m_gpuMeshes;
-
-    QTimer*  m_timer       = nullptr;
-    bool     m_initialized = false;
+    MulanGeo::Engine::EngineView  m_view;
+    QTimer*                       m_timer = nullptr;
 };

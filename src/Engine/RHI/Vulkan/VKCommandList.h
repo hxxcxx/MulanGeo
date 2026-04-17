@@ -58,6 +58,10 @@ public:
 
     // --- 资源状态转换 ---
     void transitionResource(Buffer* buffer, ResourceState newState) override;
+    void transitionResource(Texture* texture, ResourceState newState) override;
+
+    // --- 纹理 → 缓冲区复制（用于离屏回读）---
+    void copyTextureToBuffer(Texture* src, Buffer* dst) override;
 
     // --- 清除 ---
     void clearColor(float r, float g, float b, float a) override;

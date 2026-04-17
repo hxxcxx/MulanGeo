@@ -66,6 +66,7 @@ struct GraphicsPipelineDesc {
 // ============================================================
 
 class SwapChain;
+class RenderTarget;
 
 class PipelineState {
 public:
@@ -75,6 +76,9 @@ public:
 
     /// 在 SwapChain 就绪后完成管线构建（VK 需要 renderPass，GL 可 noop）
     virtual void finalize(SwapChain* swapchain) = 0;
+
+    /// 在 RenderTarget 就绪后完成管线构建（离屏渲染）
+    virtual void finalize(RenderTarget* rt) { (void)rt; }
 
     // 便捷查询
     PrimitiveTopology topology() const { return desc().topology; }

@@ -10,6 +10,7 @@ add_library(Engine STATIC
     Scene/Camera.cpp
     Render/GeometryCache.cpp
     Render/SceneRenderer.cpp
+    Render/EngineView.cpp
     RHI/Vulkan/VKBuffer.cpp
     RHI/Vulkan/VKTexture.cpp
     RHI/Vulkan/VKShader.cpp
@@ -20,6 +21,7 @@ add_library(Engine STATIC
     RHI/Vulkan/VKDescriptorAllocator.cpp
     RHI/Vulkan/VKUploadContext.cpp
     RHI/Vulkan/VKSwapChain.cpp
+    RHI/Vulkan/VKRenderTarget.cpp
     RHI/Vulkan/VKDevice.cpp
     RHI/Vulkan/VKDeviceInit.cpp
 )

@@ -30,6 +30,7 @@ public:
     vk::DescriptorSetLayout descriptorSetLayout() const { return m_descriptorSetLayout; }
 
     void finalize(SwapChain* swapchain) override;
+    void finalize(RenderTarget* rt) override;
     void build(vk::RenderPass renderPass, uint32_t subpass = 0);
 
 private:

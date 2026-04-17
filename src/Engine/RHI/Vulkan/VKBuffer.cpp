@@ -31,7 +31,8 @@ VKBuffer::VKBuffer(const BufferDesc& desc, VmaAllocator allocator)
             allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
             allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT
                            | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-            ci.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            ci.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+                      | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             break;
     }
 
@@ -66,6 +67,15 @@ void VKBuffer::update(uint32_t offset, uint32_t size, const void* data) {
     if (m_mappedData) {
         memcpy(static_cast<uint8_t*>(m_mappedData) + offset, data, size);
     }
+}
+
+bool VKBuffer::readback(uint32_t offset, uint32_t size, void* outData) {
+    if (m_desc.usage != BufferUsage::Staging || !m_mappedData) return false;
+
+    // 确保 GPU 写入对 CPU 可见
+    vmaInvalidateAllocation(m_allocator, m_allocation, offset, size);
+    memcpy(outData, static_cast<const uint8_t*>(m_mappedData) + offset, size);
+    return true;
 }
 
 } // namespace MulanGeo::Engine

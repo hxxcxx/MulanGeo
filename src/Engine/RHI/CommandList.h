@@ -20,6 +20,7 @@ namespace MulanGeo::Engine {
 
 class PipelineState;
 class Shader;
+class Texture;
 
 // ============================================================
 // 命令列表基类
@@ -68,6 +69,12 @@ public:
 
     virtual void transitionResource(Buffer* buffer,
                                     ResourceState newState) = 0;
+
+    virtual void transitionResource(Texture* texture,
+                                    ResourceState newState) { (void)texture; (void)newState; }
+
+    /// 将渲染目标 color 纹理复制到 staging buffer（用于 CPU 回读）
+    virtual void copyTextureToBuffer(Texture* src, Buffer* dst) { (void)src; (void)dst; }
 
     // --- 清除 ---
 

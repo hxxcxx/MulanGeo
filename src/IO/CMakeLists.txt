@@ -2,6 +2,7 @@
 add_library(IO SHARED
     ImporterFactory.cpp
     OCCTImporter.cpp
+    ImageLoader.cpp
 )
 
 # IO 的 MeshNode 继承 Engine 的 SceneNode
@@ -39,3 +40,11 @@ target_compile_definitions(IO PRIVATE
     BUILDING_IO
     $<$<CONFIG:Debug>:_DEBUG>
 )
+
+# --- stb (图像加载) ---
+find_path(STB_INCLUDE_DIRS "stb_image.h")
+if(STB_INCLUDE_DIRS)
+    target_include_directories(IO PRIVATE ${STB_INCLUDE_DIRS})
+else()
+    message(WARNING "stb headers not found — ImageLoader will fail to compile")
+endif()

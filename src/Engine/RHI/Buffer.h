@@ -82,6 +82,11 @@ struct BufferDesc {
         return {debugName, size, BufferUsage::Dynamic,
                 BufferBindFlags::VertexBuffer, nullptr};
     }
+
+    static BufferDesc staging(uint32_t size, std::string_view debugName = {}) {
+        return {debugName, size, BufferUsage::Staging,
+                BufferBindFlags::None, nullptr};
+    }
 };
 
 // ============================================================
@@ -99,6 +104,9 @@ public:
 
     /// CPU 端更新缓冲区数据（对于 UBO/Dynamic buffer 直接映射写入）
     virtual void update(uint32_t offset, uint32_t size, const void* data) = 0;
+
+    /// CPU 端回读缓冲区数据（仅 Staging buffer 支持）
+    virtual bool readback(uint32_t offset, uint32_t size, void* outData) { (void)offset; (void)size; (void)outData; return false; }
 
     // 便捷查询
     uint32_t        size()     const { return desc().size; }

@@ -8,9 +8,11 @@
 #pragma once
 
 #include "../Math/Mat4.h"
+#include "../Math/Vec3.h"
 #include "../RHI/VertexLayout.h"
 #include "../RHI/PipelineState.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -49,17 +51,41 @@ struct RenderItem {
     const RenderGeometry* geometry       = nullptr;
     Mat4                  worldTransform = Mat4::identity();
     uint32_t              pickId         = 0;
-    // 后续可扩展: materialIndex, sortKey, renderPassFlags...
+    uint16_t              materialIndex  = 0xFFFF;  ///< 材质索引 (0xFFFF = 默认)
+    uint8_t               renderPass     = 0;       ///< 0=Opaque, 1=Transparent
+    uint8_t               _pad           = 0;
+
+    /// 排序键：低32位材质索引（不透明：前排距离近优先；透明：后排距离远优先）
+    uint64_t              sortKey        = 0;
+
+    /// 计算不透明排序键（相同材质分组以减少状态切换，材质内按距离从近到远）
+    void computeOpaqueSortKey(const Vec3& cameraPos) {
+        double distSq = (worldTransform.transformPoint(Vec3::zero()) - cameraPos).lengthSq();
+        uint32_t distBits = static_cast<uint32_t>(distSq);       // 粗略距离桶
+        sortKey = (static_cast<uint64_t>(materialIndex) << 32) | distBits;
+    }
+
+    /// 计算透明排序键（从远到近排序，保证正确的半透明混合）
+    void computeTransparentSortKey(const Vec3& cameraPos) {
+        double distSq = (worldTransform.transformPoint(Vec3::zero()) - cameraPos).lengthSq();
+        uint32_t distBits = static_cast<uint32_t>(distSq);
+        sortKey = (static_cast<uint64_t>(0xFFFF - materialIndex) << 32)
+                | (0xFFFFFFFFu - distBits);  // 翻转使远距优先
+    }
 };
 
 // ============================================================
 // 渲染队列 — 由上层填充，Renderer 消费
+//
+// 支持不透明/半透明两桶分离排序：
+//   - 不透明：按材质分组以减少状态切换
+//   - 半透明：从远到近以保证混合正确性
 // ============================================================
 
 class RenderQueue {
 public:
     void add(const RenderItem& item) { m_items.push_back(item); }
-    void clear() { m_items.clear(); }
+    void clear() { m_items.clear(); m_opaqueSplit = 0; }
     void reserve(size_t n) { m_items.reserve(n); }
 
     size_t size() const { return m_items.size(); }
@@ -71,8 +97,41 @@ public:
 
     const RenderItem& operator[](size_t i) const { return m_items[i]; }
 
+    // --- 排序 ---
+
+    /// 分桶 + 排序（在每帧 collect 完成后、渲染前调用）
+    void sort(const Vec3& cameraPos) {
+        // 1. 分区：不透明在前，半透明在后
+        auto mid = std::stable_partition(m_items.begin(), m_items.end(),
+            [](const RenderItem& a) { return a.renderPass == 0; });
+        m_opaqueSplit = static_cast<size_t>(mid - m_items.begin());
+
+        // 2. 不透明区域：按材质分组排序
+        for (size_t i = 0; i < m_opaqueSplit; ++i)
+            m_items[i].computeOpaqueSortKey(cameraPos);
+        std::sort(m_items.begin(), mid,
+            [](const RenderItem& a, const RenderItem& b) { return a.sortKey < b.sortKey; });
+
+        // 3. 半透明区域：按距离从远到近
+        for (size_t i = m_opaqueSplit; i < m_items.size(); ++i)
+            m_items[i].computeTransparentSortKey(cameraPos);
+        std::sort(mid, m_items.end(),
+            [](const RenderItem& a, const RenderItem& b) { return a.sortKey < b.sortKey; });
+    }
+
+    /// 不透明子范围
+    std::span<const RenderItem> opaqueItems() const {
+        return { m_items.data(), m_opaqueSplit };
+    }
+
+    /// 半透明子范围
+    std::span<const RenderItem> transparentItems() const {
+        return { m_items.data() + m_opaqueSplit, m_items.size() - m_opaqueSplit };
+    }
+
 private:
     std::vector<RenderItem> m_items;
+    size_t m_opaqueSplit = 0;  ///< 不透明/半透明分割点
 };
 
 } // namespace MulanGeo::Engine
