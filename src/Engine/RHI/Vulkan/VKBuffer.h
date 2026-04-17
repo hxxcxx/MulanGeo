@@ -27,6 +27,7 @@ public:
     void markUploaded() { m_pendingData = nullptr; }
 
     void update(uint32_t offset, uint32_t size, const void* data) override;
+    bool readback(uint32_t offset, uint32_t size, void* outData) override;
 
 private:
     BufferDesc      m_desc;

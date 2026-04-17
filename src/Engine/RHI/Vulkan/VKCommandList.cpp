@@ -1,11 +1,5 @@
-/**
- * @file VKCommandList.cpp
- * @brief Vulkan命令列表实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKCommandList.h"
+#include "VKTexture.h"
 
 namespace MulanGeo::Engine {
 
@@ -122,6 +116,85 @@ void VKCommandList::updateBuffer(Buffer* buffer, uint32_t offset,
 
 void VKCommandList::transitionResource(Buffer*, ResourceState) {
     // Vulkan 通过 pipeline barrier 处理，此处简化
+}
+
+void VKCommandList::transitionResource(Texture* texture, ResourceState newState) {
+    auto* vkTex = static_cast<VKTexture*>(texture);
+
+    vk::ImageMemoryBarrier barrier;
+    barrier.image = vkTex->image();
+    barrier.subresourceRange.aspectMask = VKTexture::isDepthFormat(vkTex->desc().format)
+        ? vk::ImageAspectFlagBits::eDepth
+        : vk::ImageAspectFlagBits::eColor;
+    barrier.subresourceRange.baseMipLevel   = 0;
+    barrier.subresourceRange.levelCount     = vkTex->desc().mipLevels;
+    barrier.subresourceRange.baseArrayLayer  = 0;
+    barrier.subresourceRange.layerCount     = vkTex->desc().arraySize;
+
+    // 简化：oldLayout 用 undefined / general 由驱动处理
+    barrier.oldLayout    = vk::ImageLayout::eUndefined;
+    barrier.srcAccessMask = {};
+
+    vk::PipelineStageFlags srcStage = vk::PipelineStageFlagBits::eAllCommands;
+    vk::PipelineStageFlags dstStage = vk::PipelineStageFlagBits::eAllCommands;
+
+    switch (newState) {
+        case ResourceState::RenderTarget:
+            barrier.newLayout    = vk::ImageLayout::eColorAttachmentOptimal;
+            barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+            srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+            dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+            break;
+        case ResourceState::ShaderResource:
+            barrier.newLayout    = vk::ImageLayout::eShaderReadOnlyOptimal;
+            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+            srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+            dstStage = vk::PipelineStageFlagBits::eFragmentShader;
+            break;
+        case ResourceState::CopySrc:
+            barrier.newLayout    = vk::ImageLayout::eTransferSrcOptimal;
+            barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+            srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+            dstStage = vk::PipelineStageFlagBits::eTransfer;
+            break;
+        case ResourceState::CopyDest:
+            barrier.newLayout    = vk::ImageLayout::eTransferDstOptimal;
+            barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+            srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+            dstStage = vk::PipelineStageFlagBits::eTransfer;
+            break;
+        case ResourceState::DepthWrite:
+            barrier.newLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+            barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+            srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+            dstStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+            break;
+        default:
+            barrier.newLayout = vk::ImageLayout::eGeneral;
+            break;
+    }
+
+    m_cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, nullptr, nullptr, barrier);
+}
+
+void VKCommandList::copyTextureToBuffer(Texture* src, Buffer* dst) {
+    auto* vkTex = static_cast<VKTexture*>(src);
+    auto* vkBuf = static_cast<VKBuffer*>(dst);
+
+    vk::BufferImageCopy region;
+    region.bufferOffset      = 0;
+    region.bufferRowLength   = 0;  // 紧密排列
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask     = vk::ImageAspectFlagBits::eColor;
+    region.imageSubresource.mipLevel       = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount     = 1;
+    region.imageOffset = vk::Offset3D(0, 0, 0);
+    region.imageExtent = vk::Extent3D(vkTex->desc().width, vkTex->desc().height, 1);
+
+    m_cmdBuffer.copyImageToBuffer(
+        vkTex->image(), vk::ImageLayout::eTransferSrcOptimal,
+        vkBuf->vkBuffer(), 1, &region);
 }
 
 void VKCommandList::clearColor(float r, float g, float b, float a) {

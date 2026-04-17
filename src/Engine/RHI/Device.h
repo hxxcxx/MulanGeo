@@ -11,6 +11,7 @@
 #include "CommandList.h"
 #include "Fence.h"
 #include "PipelineState.h"
+#include "RenderTarget.h"
 #include "Shader.h"
 #include "SwapChain.h"
 #include "Texture.h"
@@ -86,6 +87,7 @@ public:
     virtual PipelineState*  createPipelineState(const GraphicsPipelineDesc& desc) = 0;
     virtual CommandList*    createCommandList() = 0;
     virtual SwapChain*      createSwapChain(const SwapChainDesc& desc) = 0;
+    virtual RenderTarget*   createRenderTarget(const RenderTargetDesc& desc) = 0;
     virtual Fence*          createFence(uint64_t initialValue = 0) = 0;
 
     // --- 资源销毁 ---
@@ -96,6 +98,7 @@ public:
     virtual void destroy(PipelineState* resource) = 0;
     virtual void destroy(CommandList* resource) = 0;
     virtual void destroy(SwapChain* resource) = 0;
+    virtual void destroy(RenderTarget* resource) = 0;
     virtual void destroy(Fence* resource) = 0;
 
     // --- 提交命令 ---
@@ -136,6 +139,9 @@ public:
 
     /// 提交当前帧命令 + present
     virtual void submitAndPresent(SwapChain* swapchain) = 0;
+
+    /// 提交当前帧命令（无 present — 用于离屏渲染）
+    virtual void submitOffscreen() = 0;
 
     // ============================================================
     // Descriptor 绑定（UBO / Texture 统一绑定接口）

@@ -1,10 +1,3 @@
-/**
- * @file VKShader.cpp
- * @brief Vulkan着色器实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKShader.h"
 
 namespace MulanGeo::Engine {

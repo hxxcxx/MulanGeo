@@ -1,10 +1,3 @@
-/**
- * @file VKUploadContext.cpp
- * @brief Vulkan上传管理器实现
- * @author hxxcxx
- * @date 2026-04-16
- */
-
 #include "VKUploadContext.h"
 #include "VKBuffer.h"
 

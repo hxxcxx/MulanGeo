@@ -26,6 +26,7 @@ public:
                  Engine::RenderQueue& queue)
     {
         queue.clear();
+        m_geometries.clear();
         auto frustum = camera.frustum();
 
         scene.traverseVisible([&](Engine::SceneNode& node) {
@@ -41,17 +42,17 @@ public:
 
             // IO::MeshPart → Engine::RenderGeometry
             // 零拷贝：直接指向 IO 层的数据
-            m_geometry = {};
-            m_geometry.vertexBytes  = std::as_bytes(std::span{part->vertices});
-            m_geometry.indexBytes   = std::as_bytes(std::span{part->indices});
-            m_geometry.vertexCount  = static_cast<uint32_t>(part->vertices.size());
-            m_geometry.indexCount   = static_cast<uint32_t>(part->indices.size());
-            m_geometry.vertexStride = sizeof(float) * 8; // pos(3) + normal(3) + uv(2)
-            // TODO: 根据 Engine 需要的布局选择，当前 IO 的 Vertex 布局直接匹配
-            m_geometry.topology     = Engine::PrimitiveTopology::TriangleList;
+            Engine::RenderGeometry geo{};
+            geo.vertexBytes  = std::as_bytes(std::span{part->vertices});
+            geo.indexBytes   = std::as_bytes(std::span{part->indices});
+            geo.vertexCount  = static_cast<uint32_t>(part->vertices.size());
+            geo.indexCount   = static_cast<uint32_t>(part->indices.size());
+            geo.vertexStride = sizeof(float) * 8; // pos(3) + normal(3) + uv(2)
+            geo.topology     = Engine::PrimitiveTopology::TriangleList;
+            m_geometries.push_back(geo);
 
             Engine::RenderItem item;
-            item.geometry       = &m_geometry;
+            item.geometry       = &m_geometries.back();
             item.worldTransform = node.worldTransform();
             item.pickId         = node.pickId();
 
@@ -60,7 +61,7 @@ public:
     }
 
 private:
-    Engine::RenderGeometry m_geometry;  // 复用，避免每帧分配
+    std::vector<Engine::RenderGeometry> m_geometries;
 };
 
 } // namespace MulanGeo::IO

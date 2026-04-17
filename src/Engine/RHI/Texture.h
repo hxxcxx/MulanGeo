@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include "Buffer.h"  // ResourceState
-
 #include <cstdint>
 #include <string_view>
 

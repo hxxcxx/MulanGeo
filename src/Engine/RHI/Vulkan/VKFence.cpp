@@ -1,10 +1,3 @@
-/**
- * @file VKFence.cpp
- * @brief Vulkan栅栏实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKFence.h"
 
 namespace MulanGeo::Engine {

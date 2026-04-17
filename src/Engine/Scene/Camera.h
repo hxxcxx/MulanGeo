@@ -7,13 +7,15 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "../Math/Vec3.h"
 #include "../Math/Mat4.h"
 #include "Frustum.h"
 
-#include <cmath>
-
 namespace MulanGeo::Engine {
+
+struct AABB;
 
 class Camera {
 public:
@@ -41,118 +43,36 @@ public:
 
     // --- 轨道参数 ---
 
-    // 目标点（相机围绕旋转的中心）
     void setTarget(const Vec3& target) { m_target = target; }
     const Vec3& target() const { return m_target; }
 
-    // 距离（相机到目标的距离）
     void setDistance(double dist) { m_distance = dist; }
     double distance() const { return m_distance; }
 
-    // 旋转角（球坐标系：theta=方位角, phi=仰角）
-    void setRotation(double theta, double phi) {
-        m_theta = theta;
-        m_phi = phi;
-        clampPhi();
-    }
+    void setRotation(double theta, double phi);
 
     // --- 交互 ---
 
-    // 轨道旋转（dx/dy 为像素偏移量）
-    void orbit(double dx, double dy) {
-        m_theta -= dx * m_orbitSpeed;
-        m_phi   += dy * m_orbitSpeed;
-        clampPhi();
-    }
-
-    // 平移（在视图平面上移动目标点）
-    void pan(double dx, double dy) {
-        Vec3 right = computeRight();
-        Vec3 up    = computeUp();
-        double scale = m_distance * m_panSpeed;
-        m_target = m_target - right * dx * scale;
-        m_target = m_target + up * dy * scale;
-    }
-
-    // 缩放（调整距离）
-    void zoom(double delta) {
-        double factor = std::pow(m_zoomSpeed, delta);
-        m_distance *= factor;
-        m_distance = std::max(m_distance, m_minDistance);
-    }
+    void orbit(double dx, double dy);
+    void pan(double dx, double dy);
+    void zoom(double delta);
 
     // 适配包围盒（自动调整距离让整个 AABB 可见）
-    void fitToBox(const AABB& box, double padding = 1.2) {
-        m_target = box.center();
-        double radius = (box.max - box.min).length() * 0.5;
-
-        if (m_ortho) {
-            m_orthoSize = radius * padding;
-        } else {
-            // 根据视角算距离，让球体刚好充满视口
-            double halfFov = m_fovY * 0.5;
-            m_distance = radius * padding / std::sin(halfFov);
-        }
-
-        // 如果包围盒退化，给一个合理的默认距离
-        if (m_distance < m_minDistance) m_distance = radius * 5.0 + 1.0;
-    }
+    void fitToBox(const AABB& box, double padding = 1.2);
 
     // --- 矩阵计算 ---
 
-    // 相机在世界空间中的位置
-    Vec3 eyePosition() const {
-        return m_target + computeOffset();
-    }
-
-    Mat4 viewMatrix() const {
-        return Mat4::lookAt(eyePosition(), m_target, {0, 0, 1});
-    }
-
-    Mat4 projectionMatrix() const {
-        if (m_ortho) {
-            double h = m_orthoSize;
-            double w = h * aspect();
-            return Mat4::ortho(-w, w, -h, h, m_nearZ, m_farZ);
-        }
-        return Mat4::perspective(m_fovY, aspect(), m_nearZ, m_farZ);
-    }
-
-    // 组合矩阵
-    Mat4 viewProjectionMatrix() const {
-        return projectionMatrix() * viewMatrix();
-    }
-
-    // 视锥体（用于场景裁剪）
-    Frustum frustum() const {
-        return Frustum::fromViewProjection(viewProjectionMatrix());
-    }
+    Vec3 eyePosition() const;
+    Mat4 viewMatrix() const;
+    Mat4 projectionMatrix() const;
+    Mat4 viewProjectionMatrix() const;
+    Frustum frustum() const;
 
 private:
-    // 球坐标 → 直角坐标偏移
-    Vec3 computeOffset() const {
-        double cosPhi = std::cos(m_phi);
-        return {
-            m_distance * cosPhi * std::cos(m_theta),
-            m_distance * cosPhi * std::sin(m_theta),
-            m_distance * std::sin(m_phi),
-        };
-    }
-
-    Vec3 computeRight() const {
-        return Vec3{std::cos(m_theta + M_PI_2), std::sin(m_theta + M_PI_2), 0}.normalized();
-    }
-
-    Vec3 computeUp() const {
-        return Vec3::cross(computeRight(), (m_target - eyePosition()).normalized()).normalized();
-    }
-
-    void clampPhi() {
-        // 限制仰角避免万向锁，留一点余量
-        const double maxPhi = M_PI_2 - 0.01;
-        if (m_phi > maxPhi)  m_phi = maxPhi;
-        if (m_phi < -maxPhi) m_phi = -maxPhi;
-    }
+    Vec3 computeOffset() const;
+    Vec3 computeRight() const;
+    Vec3 computeUp() const;
+    void clampPhi();
 
     // 轨道参数
     Vec3   m_target     = {0, 0, 0};

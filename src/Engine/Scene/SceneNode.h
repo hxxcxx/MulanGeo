@@ -55,6 +55,10 @@ public:
 
     // --- 构造（子类调用）---
 
+    static std::unique_ptr<SceneNode> create(MulanGeo::NodeType type, std::string name = {}, uint32_t pickId = 0) {
+        return std::unique_ptr<SceneNode>(new SceneNode(type, std::move(name), pickId));
+    }
+
 protected:
     explicit SceneNode(MulanGeo::NodeType type, std::string name = {}, uint32_t pickId = 0)
         : m_type(type), m_name(std::move(name)), m_pickId(pickId) {}
@@ -73,11 +77,7 @@ public:
     }
 
     // 添加子节点，返回原始指针
-    SceneNode* addChild(std::unique_ptr<SceneNode> child) {
-        child->m_parent = this;
-        m_children.push_back(std::move(child));
-        return m_children.back().get();
-    }
+    SceneNode* addChild(std::unique_ptr<SceneNode> child);
 
     // 移除并返回子节点
     std::unique_ptr<SceneNode> removeChild(SceneNode* child);
@@ -95,10 +95,7 @@ public:
     void setVisible(bool v) { m_visible = v; }
 
     // 是否实际可见（自身 + 所有祖先都可见）
-    bool isEffectivelyVisible() const {
-        if (!m_visible) return false;
-        return m_parent ? m_parent->isEffectivelyVisible() : true;
-    }
+    bool isEffectivelyVisible() const;
 
     // --- 拾取 ---
 

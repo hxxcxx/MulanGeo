@@ -5,6 +5,8 @@
     "dependencies": [
         "vulkan",
         "vulkan-memory-allocator",
+        "stb"
+        "vulkan-memory-allocator",
         {
             "name": "glad",
             "features": ["gl-api-45", "wgl", "loader"]

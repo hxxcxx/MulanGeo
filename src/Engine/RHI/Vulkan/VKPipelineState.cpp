@@ -1,11 +1,5 @@
-/**
- * @file VKPipelineState.cpp
- * @brief Vulkan管线状态实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKPipelineState.h"
+#include "VKRenderTarget.h"
 #include "VKShader.h"
 
 #include <unordered_map>
@@ -23,8 +17,25 @@ void VKPipelineState::finalize(SwapChain* swapchain) {
     build(vkSC->renderPass());
 }
 
+void VKPipelineState::finalize(RenderTarget* rt) {
+    auto* vkRT = static_cast<VKRenderTarget*>(rt);
+    build(vkRT->renderPass());
+}
+
 void VKPipelineState::build(vk::RenderPass renderPass, uint32_t subpass) {
-    if (m_pipeline) return;
+    // 重建：先销毁旧资源
+    if (m_pipeline) {
+        m_device.destroyPipeline(m_pipeline);
+        m_pipeline = nullptr;
+    }
+    if (m_layout) {
+        m_device.destroyPipelineLayout(m_layout);
+        m_layout = nullptr;
+    }
+    if (m_descriptorSetLayout) {
+        m_device.destroyDescriptorSetLayout(m_descriptorSetLayout);
+        m_descriptorSetLayout = nullptr;
+    }
 
     // --- Descriptor Set Layout ---
     std::vector<vk::DescriptorSetLayoutBinding> bindings;

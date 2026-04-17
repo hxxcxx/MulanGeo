@@ -1,8 +1,16 @@
 # Engine - 渲染后端与场景管理（静态库）
 add_library(Engine STATIC
+    Platform/Win32Window.cpp
     RHI/vertex_layout_test.cpp
     RHI/DeviceFactory.cpp
     Math/Mat4.cpp
+    Scene/SceneNode.cpp
+    Scene/Scene.cpp
+    Scene/Frustum.cpp
+    Scene/Camera.cpp
+    Render/GeometryCache.cpp
+    Render/SceneRenderer.cpp
+    Render/EngineView.cpp
     RHI/Vulkan/VKBuffer.cpp
     RHI/Vulkan/VKTexture.cpp
     RHI/Vulkan/VKShader.cpp
@@ -13,8 +21,10 @@ add_library(Engine STATIC
     RHI/Vulkan/VKDescriptorAllocator.cpp
     RHI/Vulkan/VKUploadContext.cpp
     RHI/Vulkan/VKSwapChain.cpp
+    RHI/Vulkan/VKRenderTarget.cpp
     RHI/Vulkan/VKDevice.cpp
     RHI/OpenGL/GLDevice.cpp
+    RHI/Vulkan/VKDeviceInit.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...
@@ -49,6 +59,7 @@ target_link_libraries(Engine PUBLIC
 
 target_compile_definitions(Engine PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
+    _USE_MATH_DEFINES
 )
 
 # MSVC: 多文件并行编译写同一 PDB 需要 /FS

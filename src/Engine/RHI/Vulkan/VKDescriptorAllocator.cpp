@@ -1,10 +1,3 @@
-/**
- * @file VKDescriptorAllocator.cpp
- * @brief Vulkan Descriptor分配器实现
- * @author hxxcxx
- * @date 2026-04-16
- */
-
 #include "VKDescriptorAllocator.h"
 
 namespace MulanGeo::Engine {

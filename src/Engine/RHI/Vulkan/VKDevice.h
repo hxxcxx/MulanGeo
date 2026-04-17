@@ -17,6 +17,7 @@
 #include "VKPipelineState.h"
 #include "VKCommandList.h"
 #include "VKSwapChain.h"
+#include "VKRenderTarget.h"
 #include "VKFence.h"
 #include "VKUploadContext.h"
 #include "VKFrameContext.h"
@@ -54,6 +55,7 @@ public:
     PipelineState*  createPipelineState(const GraphicsPipelineDesc& desc) override;
     CommandList*    createCommandList() override;
     SwapChain*      createSwapChain(const SwapChainDesc& desc) override;
+    RenderTarget*   createRenderTarget(const RenderTargetDesc& desc) override;
     Fence*          createFence(uint64_t initialValue = 0) override;
 
     // --- 资源销毁 ---
@@ -63,6 +65,7 @@ public:
     void destroy(PipelineState* resource) override;
     void destroy(CommandList* resource) override;
     void destroy(SwapChain* resource) override;
+    void destroy(RenderTarget* resource) override;
     void destroy(Fence* resource) override;
 
     // --- 提交命令 ---
@@ -74,6 +77,7 @@ public:
     void beginFrame() override;
     CommandList* frameCommandList() override;
     void submitAndPresent(SwapChain* swapchain) override;
+    void submitOffscreen() override;
 
     // --- Descriptor 绑定 ---
     void bindUniformBuffers(CommandList* cmd, PipelineState* pso,
