@@ -1,7 +1,3 @@
-/*
- * Vulkan Device 实现
- */
-
 // VMA 实现（必须在 #include <vk_mem_alloc.h> 之前）
 #define VMA_IMPLEMENTATION
 

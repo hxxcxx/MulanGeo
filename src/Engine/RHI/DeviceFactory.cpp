@@ -1,10 +1,3 @@
-/**
- * @file DeviceFactory.cpp
- * @brief RHI设备工厂，根据后端类型创建具体实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "Device.h"
 #include "Vulkan/VKDevice.h"
 

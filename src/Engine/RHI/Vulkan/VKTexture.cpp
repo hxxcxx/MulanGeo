@@ -1,10 +1,3 @@
-/**
- * @file VKTexture.cpp
- * @brief Vulkan纹理实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKTexture.h"
 
 namespace MulanGeo::Engine {

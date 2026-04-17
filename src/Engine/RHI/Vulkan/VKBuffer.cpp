@@ -1,10 +1,3 @@
-/**
- * @file VKBuffer.cpp
- * @brief Vulkan缓冲区实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKBuffer.h"
 
 namespace MulanGeo::Engine {

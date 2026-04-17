@@ -1,10 +1,3 @@
-/**
- * @file VKSwapChain.cpp
- * @brief Vulkan交换链实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKSwapChain.h"
 #include "VKTexture.h"
 

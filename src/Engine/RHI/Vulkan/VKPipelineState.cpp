@@ -1,10 +1,3 @@
-/**
- * @file VKPipelineState.cpp
- * @brief Vulkan管线状态实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKPipelineState.h"
 #include "VKShader.h"
 

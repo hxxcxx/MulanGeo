@@ -1,10 +1,3 @@
-/**
- * @file VKCommandList.cpp
- * @brief Vulkan命令列表实现
- * @author hxxcxx
- * @date 2026-04-15
- */
-
 #include "VKCommandList.h"
 
 namespace MulanGeo::Engine {

@@ -1,10 +1,3 @@
-/**
- * @file VKFrameContext.cpp
- * @brief Vulkan帧上下文实现
- * @author hxxcxx
- * @date 2026-04-16
- */
-
 #include "VKFrameContext.h"
 
 namespace MulanGeo::Engine {
