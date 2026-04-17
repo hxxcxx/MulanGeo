@@ -4,6 +4,10 @@ add_library(Engine STATIC
     RHI/vertex_layout_test.cpp
     RHI/DeviceFactory.cpp
     Math/Mat4.cpp
+    Scene/SceneNode.cpp
+    Scene/Scene.cpp
+    Scene/Frustum.cpp
+    Scene/Camera.cpp
     RHI/Vulkan/VKBuffer.cpp
     RHI/Vulkan/VKTexture.cpp
     RHI/Vulkan/VKShader.cpp

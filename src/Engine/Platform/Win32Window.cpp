@@ -2,8 +2,6 @@
 
 #ifdef _WIN32
 
-#include <Windows.h>
-
 namespace MulanGeo::Engine {
 
 Win32Window::Win32Window(const Desc& desc)
@@ -45,7 +43,7 @@ void Win32Window::registerClass() {
     wc.style         = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc   = &WndProc;
     wc.hInstance     = GetModuleHandleW(nullptr);
-    wc.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+    wc.hCursor       = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wc.lpszClassName = kClassName;
 
@@ -78,11 +76,7 @@ void Win32Window::createWindow(const Desc& desc) {
     UpdateWindow(m_hwnd);
 }
 
-} // namespace MulanGeo::Engine
-
-// WndProc 放在命名空间外，作为自由函数（friend of Win32Window）
-static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    using namespace MulanGeo::Engine;
+LRESULT CALLBACK Win32Window::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     Win32Window* self = nullptr;
 
     if (msg == WM_NCCREATE) {
@@ -116,6 +110,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-#endif // _WIN32
+} // namespace MulanGeo::Engine
 
 #endif // _WIN32

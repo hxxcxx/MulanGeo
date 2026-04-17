@@ -15,9 +15,7 @@
 #ifdef _WIN32
 
 #include <string>
-
-struct HWND__;                    // 前向声明，避免 #include <Windows.h>
-typedef HWND__* HWND;
+#include <Windows.h>
 
 namespace MulanGeo::Engine {
 
@@ -48,12 +46,12 @@ public:
     HWND hwnd() const { return m_hwnd; }
 
 private:
-    friend LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
     static constexpr const wchar_t* kClassName = L"MulanGeoWindow";
 
     void registerClass();
     void createWindow(const Desc& desc);
+
+    static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     HWND     m_hwnd         = nullptr;
     uint32_t m_width        = 0;
