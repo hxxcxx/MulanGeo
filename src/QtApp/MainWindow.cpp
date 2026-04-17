@@ -1,6 +1,6 @@
 /**
  * @file MainWindow.cpp
- * @brief Qt主窗口实现 - RHI渲染
+ * @brief Qt主窗口实现 — 欢迎页 + 按需创建渲染视口
  * @author hxxcxx
  * @date 2026-04-16
  */
@@ -17,15 +17,23 @@
 #include <QFileDialog>
 #include <QStatusBar>
 #include <QMessageBox>
+#include <QStackedWidget>
+#include <QLabel>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 
 // ==================== MainWindow ====================
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle("MulanGeo");
     resize(1280, 720);
+    setAcceptDrops(true);
 
-    m_renderWidget = new RenderWidget(this);
-    setCentralWidget(m_renderWidget);
+    // Stacked widget: page 0 = welcome, page 1 = render view
+    m_stack = new QStackedWidget(this);
+    setCentralWidget(m_stack);
+    showWelcomePage();
 
     // Menu
     auto* fileMenu = menuBar()->addMenu("&File");
@@ -37,6 +45,41 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     toolbar->addAction(openAction);
 
     statusBar()->showMessage("Ready");
+}
+
+void MainWindow::showWelcomePage() {
+    // Remove old render widget if exists
+    if (m_renderWidget) {
+        m_stack->removeWidget(m_renderWidget);
+        delete m_renderWidget;
+        m_renderWidget = nullptr;
+    }
+
+    // Welcome page (simple label, can be replaced with fancy QWidget later)
+    auto* welcome = new QLabel(
+        "<h2 style='color:#888;'>MulanGeo</h2>"
+        "<p style='color:#aaa;'>Open a CAD file to begin — File → Open, or drag & drop</p>",
+        this);
+    welcome->setAlignment(Qt::AlignCenter);
+    welcome->setStyleSheet("background-color: #2b2b2b;");
+    m_stack->addWidget(welcome);
+    m_stack->setCurrentWidget(welcome);
+}
+
+void MainWindow::showRenderView(const MulanGeo::IO::ImportResult& result) {
+    // Remove welcome page(s) — everything that isn't the render widget
+    while (m_stack->count() > 0 && m_stack->widget(0) != m_renderWidget) {
+        auto* w = m_stack->widget(0);
+        m_stack->removeWidget(w);
+        delete w;
+    }
+
+    // Create render widget on demand
+    m_renderWidget = new RenderWidget(this);
+    m_stack->addWidget(m_renderWidget);
+    m_stack->setCurrentWidget(m_renderWidget);
+
+    m_renderWidget->loadMesh(result);
 }
 
 void MainWindow::onOpenFile() {
@@ -75,7 +118,7 @@ void MainWindow::onOpenFile() {
         totalTris += static_cast<int>(mesh.indices.size() / 3);
     }
 
-    m_renderWidget->loadMesh(result);
+    showRenderView(result);
 
     statusBar()->showMessage(
         QString("Loaded: %1 | Meshes: %2 | Vertices: %3 | Triangles: %4")
@@ -84,4 +127,14 @@ void MainWindow::onOpenFile() {
             .arg(totalVerts)
             .arg(totalTris)
     );
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* e) {
+    if (e->mimeData()->hasUrls()) e->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent* e) {
+    const auto urls = e->mimeData()->urls();
+    if (urls.isEmpty()) return;
+    // TODO: trigger file open with urls[0].toLocalFile()
 }

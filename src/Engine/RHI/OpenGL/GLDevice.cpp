@@ -239,6 +239,12 @@ Fence* GLDevice::createFence(uint64_t /*initialValue*/) {
     return nullptr;
 }
 
+RenderTarget* GLDevice::createRenderTarget(const RenderTargetDesc& /*desc*/) {
+    // TODO: return new GLRenderTarget(desc);
+    std::fprintf(stderr, "[GLDevice] createRenderTarget: not yet implemented\n");
+    return nullptr;
+}
+
 // ============================================================
 // 资源销毁
 // ============================================================
@@ -249,6 +255,7 @@ void GLDevice::destroy(Shader* resource)        { delete resource; }
 void GLDevice::destroy(PipelineState* resource) { delete resource; }
 void GLDevice::destroy(CommandList* resource)   { delete resource; }
 void GLDevice::destroy(SwapChain* resource)     { delete resource; }
+void GLDevice::destroy(RenderTarget* resource)  { delete resource; }
 void GLDevice::destroy(Fence* resource)         { delete resource; }
 
 // ============================================================
@@ -296,6 +303,11 @@ void GLDevice::submitAndPresent(SwapChain* /*swapchain*/) {
         SwapBuffers(m_hdc);
     }
 #endif
+}
+
+void GLDevice::submitOffscreen() {
+    // 离屏渲染：无 present，仅 flush 确保命令提交
+    glFlush();
 }
 
 // ============================================================

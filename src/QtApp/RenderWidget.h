@@ -13,7 +13,6 @@
 #pragma once
 
 #include <QWidget>
-#include <QTimer>
 
 #include <MulanGeo/Engine/Render/EngineView.h>
 #include <MulanGeo/Engine/Interaction/InputEvent.h>
@@ -48,6 +47,7 @@ protected:
     void showEvent(QShowEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
     void paintEvent(QPaintEvent*) override;
+    QPaintEngine* paintEngine() const override { return nullptr; }
 
     void mousePressEvent(QMouseEvent* e) override;
     void mouseReleaseEvent(QMouseEvent* e) override;
@@ -71,5 +71,4 @@ private:
     static MulanGeo::Engine::Key translateKey(int qtKey);
 
     MulanGeo::Engine::EngineView  m_view;
-    QTimer*                       m_timer = nullptr;
 };

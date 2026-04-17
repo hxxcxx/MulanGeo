@@ -51,12 +51,7 @@ void RenderWidget::showEvent(QShowEvent* e) {
         NativeWindowHandle handle{};
 #endif
         if (!m_view.init(handle, width(), height())) return;
-
-        if (!m_timer) {
-            m_timer = new QTimer(this);
-            connect(m_timer, &QTimer::timeout, this, [this]() { requestFrame(); });
-            m_timer->start(16);
-        }
+        requestFrame();
     }
 }
 
@@ -64,6 +59,7 @@ void RenderWidget::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
     if (m_view.isInitialized()) {
         m_view.resize(width(), height());
+        requestFrame();
     }
 }
 
@@ -82,6 +78,7 @@ void RenderWidget::mousePressEvent(QMouseEvent* e) {
         translateButtons(e->buttons()),
         translateModifiers(e->modifiers()));
     m_view.handleInput(ev);
+    requestFrame();
 }
 
 void RenderWidget::mouseReleaseEvent(QMouseEvent* e) {
@@ -91,6 +88,7 @@ void RenderWidget::mouseReleaseEvent(QMouseEvent* e) {
         translateButtons(e->buttons()),
         translateModifiers(e->modifiers()));
     m_view.handleInput(ev);
+    requestFrame();
 }
 
 void RenderWidget::mouseMoveEvent(QMouseEvent* e) {
@@ -99,6 +97,7 @@ void RenderWidget::mouseMoveEvent(QMouseEvent* e) {
         translateButtons(e->buttons()),
         translateModifiers(e->modifiers()));
     m_view.handleInput(ev);
+    requestFrame();
 }
 
 void RenderWidget::mouseDoubleClickEvent(QMouseEvent* e) {
@@ -110,6 +109,7 @@ void RenderWidget::mouseDoubleClickEvent(QMouseEvent* e) {
     ev.buttons   = translateButtons(e->buttons());
     ev.modifiers = translateModifiers(e->modifiers());
     m_view.handleInput(ev);
+    requestFrame();
 }
 
 void RenderWidget::wheelEvent(QWheelEvent* e) {
@@ -120,6 +120,7 @@ void RenderWidget::wheelEvent(QWheelEvent* e) {
         delta,
         translateModifiers(e->modifiers()));
     m_view.handleInput(ev);
+    requestFrame();
 }
 
 // ============================================================
@@ -131,6 +132,7 @@ void RenderWidget::keyPressEvent(QKeyEvent* e) {
         translateKey(e->key()),
         translateModifiers(e->modifiers()));
     m_view.handleInput(ev);
+    requestFrame();
 }
 
 void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
@@ -138,6 +140,7 @@ void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
         translateKey(e->key()),
         translateModifiers(e->modifiers()));
     m_view.handleInput(ev);
+    requestFrame();
 }
 
 // ============================================================
@@ -146,6 +149,7 @@ void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
 
 void RenderWidget::loadMesh(const MulanGeo::IO::ImportResult& result) {
     m_view.loadMesh(result);
+    requestFrame();
 }
 
 void RenderWidget::requestFrame() {

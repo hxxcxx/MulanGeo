@@ -1,12 +1,13 @@
 /**
  * @file MainWindow.h
- * @brief Qt主窗口，集成RHI渲染控件
+ * @brief Qt主窗口 — 欢迎页 + 按需创建渲染视口
  * @author hxxcxx
  * @date 2026-04-16
  */
 #pragma once
 
 #include <QMainWindow>
+#include <QStackedWidget>
 #include <memory>
 
 class RenderWidget;
@@ -24,5 +25,12 @@ private slots:
     void onOpenFile();
 
 private:
-    RenderWidget* m_renderWidget;
+    void showWelcomePage();
+    void showRenderView(const MulanGeo::IO::ImportResult& result);
+
+    void dragEnterEvent(QDragEnterEvent* e) override;
+    void dropEvent(QDropEvent* e) override;
+
+    QStackedWidget* m_stack = nullptr;
+    RenderWidget*   m_renderWidget = nullptr;
 };
