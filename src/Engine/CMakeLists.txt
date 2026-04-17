@@ -14,6 +14,7 @@ add_library(Engine STATIC
     RHI/Vulkan/VKUploadContext.cpp
     RHI/Vulkan/VKSwapChain.cpp
     RHI/Vulkan/VKDevice.cpp
+    RHI/OpenGL/GLDevice.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...
@@ -29,6 +30,10 @@ target_include_directories(Engine PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
 
+# --- OpenGL + GLAD (vcpkg) ---
+find_package(OpenGL REQUIRED)
+find_package(glad CONFIG REQUIRED)
+
 # --- Vulkan ---
 find_package(Vulkan REQUIRED)
 
@@ -38,6 +43,8 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 target_link_libraries(Engine PUBLIC
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
+    OpenGL::GL
+    glad::glad
 )
 
 target_compile_definitions(Engine PRIVATE
