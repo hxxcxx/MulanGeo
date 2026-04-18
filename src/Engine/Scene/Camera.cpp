@@ -14,7 +14,7 @@ void Camera::setRotation(double theta, double phi) {
 
 void Camera::orbit(double dx, double dy) {
     m_theta -= dx * m_orbitSpeed;
-    m_phi   -= dy * m_orbitSpeed;
+    m_phi   += dy * m_orbitSpeed;
     clampPhi();
 }
 

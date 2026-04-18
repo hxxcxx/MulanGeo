@@ -66,7 +66,7 @@ public:
 
         // --- 平移（中键 或 右键） ---
         if (e.isButtonPressed(config.panButton) || e.isButtonPressed(config.panAltButton)) {
-            cam.pan(static_cast<double>(dx), static_cast<double>(-dy));
+            cam.pan(static_cast<double>(dx), static_cast<double>(dy));
             return true;
         }
 

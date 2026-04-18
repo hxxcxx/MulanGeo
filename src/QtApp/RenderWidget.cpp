@@ -50,7 +50,10 @@ void RenderWidget::showEvent(QShowEvent* e) {
 #else
         NativeWindowHandle handle{};
 #endif
-        if (!m_view.init(handle, width(), height())) return;
+        const qreal dpr = devicePixelRatioF();
+        const int pw = static_cast<int>(width()  * dpr);
+        const int ph = static_cast<int>(height() * dpr);
+        if (!m_view.init(handle, pw, ph)) return;
 
         // 加载 init 之前缓存的 mesh
         if (m_pendingMesh) {
@@ -64,7 +67,10 @@ void RenderWidget::showEvent(QShowEvent* e) {
 void RenderWidget::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
     if (m_view.isInitialized()) {
-        m_view.resize(width(), height());
+        const qreal dpr = devicePixelRatioF();
+        const int pw = static_cast<int>(width()  * dpr);
+        const int ph = static_cast<int>(height() * dpr);
+        m_view.resize(pw, ph);
         requestFrame();
     }
 }
