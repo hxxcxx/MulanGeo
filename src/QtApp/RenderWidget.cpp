@@ -7,7 +7,7 @@
 
 #include "RenderWidget.h"
 
-#include <MulanGeo/IO/MeshData.h>
+#include <MulanGeo/IO/UIDocument.h>
 
 #include <QShowEvent>
 #include <QResizeEvent>
@@ -55,10 +55,9 @@ void RenderWidget::showEvent(QShowEvent* e) {
         const int ph = static_cast<int>(height() * dpr);
         if (!m_view.init(handle, pw, ph)) return;
 
-        // 加载 init 之前缓存的 mesh
-        if (m_pendingMesh) {
-            m_view.loadMesh(*m_pendingMesh);
-            m_pendingMesh.reset();
+        // 绑定之前设置的文档
+        if (m_uiDoc) {
+            m_uiDoc->attachView(&m_view);
         }
         requestFrame();
     }
@@ -159,35 +158,13 @@ void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
 // 转发
 // ============================================================
 
-void RenderWidget::loadMesh(const MulanGeo::IO::ImportResult& result) {
-    // 将 IO::ImportResult 转换为 Engine::LoadMeshData
-    LoadMeshData data;
-    data.sourceFile = result.sourceFile;
-    data.parts.reserve(result.meshes.size());
-    for (auto& mesh : result.meshes) {
-        LoadMeshData::Part part;
-        part.name = mesh.name;
-        part.indices = mesh.indices;
-        // P3N3UV2 交织
-        part.vertices.reserve(mesh.vertices.size() * 8);
-        for (auto& v : mesh.vertices) {
-            part.vertices.push_back(v.position.x);
-            part.vertices.push_back(v.position.y);
-            part.vertices.push_back(v.position.z);
-            part.vertices.push_back(v.normal.x);
-            part.vertices.push_back(v.normal.y);
-            part.vertices.push_back(v.normal.z);
-            part.vertices.push_back(v.texCoord.u);
-            part.vertices.push_back(v.texCoord.v);
-        }
-        data.parts.push_back(std::move(part));
-    }
+void RenderWidget::setUIDocument(MulanGeo::IO::UIDocument* doc) {
+    if (m_uiDoc) m_uiDoc->detachView();
+    m_uiDoc = doc;
 
-    if (m_view.isInitialized()) {
-        m_view.loadMesh(data);
+    if (m_view.isInitialized() && m_uiDoc) {
+        m_uiDoc->attachView(&m_view);
         requestFrame();
-    } else {
-        m_pendingMesh = std::move(data);
     }
 }
 

@@ -83,7 +83,7 @@ Vec3 Camera::computeOffset() const {
 }
 
 Vec3 Camera::computeRight() const {
-    return Vec3{std::cos(m_theta + M_PI_2), std::sin(m_theta + M_PI_2), 0}.normalized();
+    return Vec3{std::cos(m_theta + detail::kPi / 2), std::sin(m_theta + detail::kPi / 2), 0}.normalized();
 }
 
 Vec3 Camera::computeUp() const {
@@ -91,7 +91,7 @@ Vec3 Camera::computeUp() const {
 }
 
 void Camera::clampPhi() {
-    const double maxPhi = M_PI_2 - 0.01;
+    const double maxPhi = detail::kPi / 2.0 - 0.01;
     if (m_phi > maxPhi)  m_phi = maxPhi;
     if (m_phi < -maxPhi) m_phi = -maxPhi;
 }

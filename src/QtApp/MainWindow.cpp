@@ -8,10 +8,6 @@
 #include "MainWindow.h"
 #include "RenderWidget.h"
 
-#include <MulanGeo/IO/IFileImporter.h>
-#include <MulanGeo/IO/ImporterFactory.h>
-#include <MulanGeo/IO/MeshData.h>
-
 #include <QMenuBar>
 #include <QToolBar>
 #include <QFileDialog>
@@ -22,6 +18,7 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
+#include <QFileInfo>
 
 // ==================== MainWindow ====================
 
@@ -66,7 +63,7 @@ void MainWindow::showWelcomePage() {
     m_stack->setCurrentWidget(welcome);
 }
 
-void MainWindow::showRenderView(const MulanGeo::IO::ImportResult& result) {
+void MainWindow::showRenderView(MulanGeo::IO::UIDocument* uiDoc) {
     // Remove welcome page(s) — everything that isn't the render widget
     while (m_stack->count() > 0 && m_stack->widget(0) != m_renderWidget) {
         auto* w = m_stack->widget(0);
@@ -75,17 +72,17 @@ void MainWindow::showRenderView(const MulanGeo::IO::ImportResult& result) {
     }
 
     // Create render widget on demand
-    m_renderWidget = new RenderWidget(this);
-    m_stack->addWidget(m_renderWidget);
+    if (!m_renderWidget) {
+        m_renderWidget = new RenderWidget(this);
+        m_stack->addWidget(m_renderWidget);
+    }
     m_stack->setCurrentWidget(m_renderWidget);
 
-    m_renderWidget->loadMesh(result);
+    m_renderWidget->setUIDocument(uiDoc);
 }
 
 void MainWindow::onOpenFile() {
-    using namespace MulanGeo::IO;
-
-    auto exts = ImporterFactory::instance().allSupportedExtensions();
+    auto exts = m_docManager.supportedExtensions();
     QString filter = "CAD Files (";
     for (const auto& ext : exts) {
         filter += QString(" *.%1").arg(QString::fromStdString(ext));
@@ -97,36 +94,20 @@ void MainWindow::onOpenFile() {
 
     statusBar()->showMessage("Loading: " + filePath);
 
-    std::string ext = QFileInfo(filePath).suffix().toStdString();
-    auto importer = ImporterFactory::instance().create(ext);
-    if (!importer) {
-        QMessageBox::warning(this, "Error", QString("No importer for: .%1").arg(QString::fromStdString(ext)));
+    auto* uiDoc = m_docManager.openFile(filePath.toStdString());
+    if (!uiDoc) {
+        QMessageBox::warning(this, "Import Error",
+            QString::fromStdString(m_docManager.lastError()));
         statusBar()->showMessage("Ready");
         return;
     }
 
-    ImportResult result = importer->importFile(filePath.toStdString());
-    if (!result.success) {
-        QMessageBox::warning(this, "Import Error", QString::fromStdString(result.error));
-        statusBar()->showMessage("Ready");
-        return;
-    }
-
-    int totalVerts = 0, totalTris = 0;
-    for (const auto& mesh : result.meshes) {
-        totalVerts += static_cast<int>(mesh.vertices.size());
-        totalTris += static_cast<int>(mesh.indices.size() / 3);
-    }
-
-    showRenderView(result);
+    showRenderView(uiDoc);
 
     statusBar()->showMessage(
-        QString("Loaded: %1 | Meshes: %2 | Vertices: %3 | Triangles: %4")
-            .arg(QFileInfo(filePath).fileName())
-            .arg(result.meshes.size())
-            .arg(totalVerts)
-            .arg(totalTris)
-    );
+        QString("Loaded: %1 | %2")
+            .arg(QString::fromStdString(uiDoc->document().displayName()))
+            .arg(QString::fromStdString(uiDoc->document().summary())));
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* e) {
@@ -140,37 +121,20 @@ void MainWindow::dropEvent(QDropEvent* e) {
     QString filePath = urls[0].toLocalFile();
     if (filePath.isEmpty()) return;
 
-    // 复用 onOpenFile 的加载逻辑
     statusBar()->showMessage("Loading: " + filePath);
 
-    using namespace MulanGeo::IO;
-    std::string ext = QFileInfo(filePath).suffix().toStdString();
-    auto importer = ImporterFactory::instance().create(ext);
-    if (!importer) {
-        QMessageBox::warning(this, "Error", QString("No importer for: .%1").arg(QString::fromStdString(ext)));
+    auto* uiDoc = m_docManager.openFile(filePath.toStdString());
+    if (!uiDoc) {
+        QMessageBox::warning(this, "Import Error",
+            QString::fromStdString(m_docManager.lastError()));
         statusBar()->showMessage("Ready");
         return;
     }
 
-    ImportResult result = importer->importFile(filePath.toStdString());
-    if (!result.success) {
-        QMessageBox::warning(this, "Import Error", QString::fromStdString(result.error));
-        statusBar()->showMessage("Ready");
-        return;
-    }
-
-    int totalVerts = 0, totalTris = 0;
-    for (const auto& mesh : result.meshes) {
-        totalVerts += static_cast<int>(mesh.vertices.size());
-        totalTris  += static_cast<int>(mesh.indices.size() / 3);
-    }
-
-    showRenderView(result);
+    showRenderView(uiDoc);
 
     statusBar()->showMessage(
-        QString("Loaded: %1 | Meshes: %2 | Vertices: %3 | Triangles: %4")
-            .arg(QFileInfo(filePath).fileName())
-            .arg(result.meshes.size())
-            .arg(totalVerts)
-            .arg(totalTris));
+        QString("Loaded: %1 | %2")
+            .arg(QString::fromStdString(uiDoc->document().displayName()))
+            .arg(QString::fromStdString(uiDoc->document().summary())));
 }

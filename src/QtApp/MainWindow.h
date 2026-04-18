@@ -8,13 +8,9 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
-#include <memory>
+#include <MulanGeo/IO/DocumentManager.h>
 
 class RenderWidget;
-
-namespace MulanGeo::IO {
-struct ImportResult;
-}
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -26,11 +22,12 @@ private slots:
 
 private:
     void showWelcomePage();
-    void showRenderView(const MulanGeo::IO::ImportResult& result);
+    void showRenderView(MulanGeo::IO::UIDocument* uiDoc);
 
     void dragEnterEvent(QDragEnterEvent* e) override;
     void dropEvent(QDropEvent* e) override;
 
     QStackedWidget* m_stack = nullptr;
     RenderWidget*   m_renderWidget = nullptr;
+    MulanGeo::IO::DocumentManager m_docManager;
 };

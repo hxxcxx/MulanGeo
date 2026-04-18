@@ -38,22 +38,9 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <functional>
 
 namespace MulanGeo::Engine {
-
-// ============================================================
-// 加载用网格数据（平台无关，与 IO 层解耦）
-// ============================================================
-
-struct LoadMeshData {
-    struct Part {
-        std::vector<float> vertices;   // P3N3UV2 交织
-        std::vector<uint32_t> indices;
-        std::string name;
-    };
-    std::vector<Part> parts;
-    std::string sourceFile;
-};
 
 // ============================================================
 // GPU UBO 结构 — 与 shader Common.hlsli 对齐
@@ -145,10 +132,16 @@ public:
     Camera&       camera()       { return m_camera; }
     const Camera& camera() const { return m_camera; }
 
-    // --- 数据加载 ---
+    // --- 场景收集 ---
 
-    /// 加载 mesh 数据到 GPU
-    void loadMesh(const LoadMeshData& data);
+    /// 收集回调：每帧渲染前调用以填充 RenderQueue
+    using CollectCallback = std::function<void(const Camera&, RenderQueue&)>;
+
+    /// 设置收集回调（由 UIDocument::attachView 调用）
+    void setCollector(CollectCallback cb);
+
+    /// 清除收集回调
+    void clearCollector();
 
 private:
     void loadShaders();
@@ -183,11 +176,7 @@ private:
     // --- Renderer ---
     std::unique_ptr<SceneRenderer>      m_sceneRenderer;
     RenderQueue                         m_renderQueue;
-    std::vector<RenderGeometry>         m_geometries;    // 持有 RenderGeometry 数据
-
-    // 持有 mesh 原始数据（生命周期与 RenderGeometry 对齐）
-    std::vector<std::shared_ptr<void>>  m_meshVertexData;
-    std::vector<std::shared_ptr<void>>  m_meshIndexData;
+    CollectCallback                     m_collectCallback;
 
     // --- 状态 ---
 

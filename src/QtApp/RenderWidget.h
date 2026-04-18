@@ -18,10 +18,9 @@
 #include <MulanGeo/Engine/Interaction/InputEvent.h>
 
 #include <memory>
-#include <optional>
 
 namespace MulanGeo::IO {
-struct ImportResult;
+class UIDocument;
 }
 
 // ============================================================
@@ -35,8 +34,8 @@ public:
     explicit RenderWidget(QWidget* parent = nullptr);
     ~RenderWidget();
 
-    /// 加载 mesh 数据（委托给 EngineView）
-    void loadMesh(const MulanGeo::IO::ImportResult& result);
+    /// 设置当前 UI 文档（绑定场景到视图）
+    void setUIDocument(MulanGeo::IO::UIDocument* doc);
 
     /// 请求渲染下一帧
     void requestFrame();
@@ -72,5 +71,5 @@ private:
     static MulanGeo::Engine::Key translateKey(int qtKey);
 
     MulanGeo::Engine::EngineView  m_view;
-    std::optional<MulanGeo::Engine::LoadMeshData> m_pendingMesh;
+    MulanGeo::IO::UIDocument*     m_uiDoc = nullptr;
 };

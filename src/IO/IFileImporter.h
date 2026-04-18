@@ -5,15 +5,12 @@
  * @date 2026-04-15
  */
 #pragma once
+
+#include "IOExport.h"
+
 #include <string>
 #include <vector>
 #include <memory>
-
-#ifdef BUILDING_IO
-  #define IO_API __declspec(dllexport)
-#else
-  #define IO_API __declspec(dllimport)
-#endif
 
 namespace MulanGeo::IO {
 

@@ -3,6 +3,9 @@ add_library(IO SHARED
     ImporterFactory.cpp
     OCCTImporter.cpp
     ImageLoader.cpp
+    MeshDocument.cpp
+    UIDocument.cpp
+    DocumentManager.cpp
 )
 
 # IO 的 MeshNode 继承 Engine 的 SceneNode

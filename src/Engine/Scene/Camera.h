@@ -15,6 +15,10 @@
 
 namespace MulanGeo::Engine {
 
+namespace detail {
+constexpr double kPi = 3.14159265358979323846;
+}
+
 struct AABB;
 
 class Camera {
@@ -77,13 +81,13 @@ private:
     // 轨道参数
     Vec3   m_target     = {0, 0, 0};
     double m_distance   = 10.0;
-    double m_theta      = M_PI * 0.25;  // 方位角（弧度）
-    double m_phi        = M_PI * 0.15;  // 仰角（弧度）
+    double m_theta      = detail::kPi * 0.25;  // 方位角（弧度）
+    double m_phi        = detail::kPi * 0.15;  // 仰角（弧度）
 
     // 投影参数
     int    m_width      = 800;
     int    m_height     = 600;
-    double m_fovY       = M_PI / 4.0;   // 45°
+    double m_fovY       = detail::kPi / 4.0;   // 45°
     double m_nearZ      = 0.01;
     double m_farZ       = 10000.0;
     bool   m_ortho      = false;
