@@ -54,6 +54,7 @@ VKBuffer::VKBuffer(const BufferDesc& desc, VmaAllocator allocator)
     // 上传初始数据
     if (desc.initData && m_mappedData) {
         memcpy(m_mappedData, desc.initData, desc.size);
+        vmaFlushAllocation(allocator, m_allocation, 0, desc.size);
     } else if (desc.initData) {
         // 不可映射的 immutable buffer 需要暂存缓冲区（后续由 VKDevice 处理）
         // 拷贝数据到自有存储，避免悬挂指针
@@ -71,6 +72,7 @@ VKBuffer::~VKBuffer() {
 void VKBuffer::update(uint32_t offset, uint32_t size, const void* data) {
     if (m_mappedData) {
         memcpy(static_cast<uint8_t*>(m_mappedData) + offset, data, size);
+        vmaFlushAllocation(m_allocator, m_allocation, offset, size);
     }
 }
 

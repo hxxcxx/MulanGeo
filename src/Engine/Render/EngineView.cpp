@@ -384,6 +384,12 @@ void EngineView::updateCameraUBO() {
     auto view     = m_camera.viewMatrix();
     auto proj     = m_camera.projectionMatrix();
 
+    auto eye = m_camera.eyePosition();
+    fprintf(stderr, "[DEBUG] camera: eye=[%.2f,%.2f,%.2f] dist=%.2f fov=%.2f near=%.4f far=%.1f\n",
+            eye.x, eye.y, eye.z, m_camera.distance(), m_camera.fieldOfView(),
+            0.01, 10000.0);
+    fflush(stderr);
+
     // 应用后端裁剪空间修正（Vulkan: Y↓ z∈[0,1]，OpenGL: 无修正）
     auto clip     = m_device->clipSpaceCorrectionMatrix();
     auto corrProj = clip * proj;
@@ -489,6 +495,12 @@ void EngineView::loadMesh(const LoadMeshData& data) {
     if (!modelBounds.isEmpty()) {
         m_camera.fitToBox(modelBounds);
     }
+
+    fprintf(stderr, "[DEBUG] loadMesh: %zu geometries, %zu renderItems, bounds=[%.2f,%.2f,%.2f]->[%.2f,%.2f,%.2f]\n",
+            m_geometries.size(), m_renderQueue.items().size(),
+            modelBounds.min.x, modelBounds.min.y, modelBounds.min.z,
+            modelBounds.max.x, modelBounds.max.y, modelBounds.max.z);
+    fflush(stderr);
 }
 
 // ============================================================

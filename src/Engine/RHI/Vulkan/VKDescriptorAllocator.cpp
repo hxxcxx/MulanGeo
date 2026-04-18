@@ -50,7 +50,7 @@ void VKDescriptorAllocator::bindUniformBuffer(vk::DescriptorSet set, uint32_t bi
     vk::DescriptorBufferInfo bufInfo;
     bufInfo.buffer = buffer;
     bufInfo.offset = offset;
-    bufInfo.range  = range;
+    bufInfo.range  = (range == 0) ? VK_WHOLE_SIZE : range;
 
     vk::WriteDescriptorSet write;
     write.dstSet           = set;

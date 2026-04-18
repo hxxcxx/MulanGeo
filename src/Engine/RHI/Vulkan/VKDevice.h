@@ -107,6 +107,7 @@ private:
 
     // --- Vulkan 核心 ---
     vk::Instance                m_instance;
+    vk::DebugUtilsMessengerEXT  m_debugMessenger;
     vk::PhysicalDevice          m_physicalDevice;
     vk::Device                  m_device;
     vk::SurfaceKHR              m_surface;

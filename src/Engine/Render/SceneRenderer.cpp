@@ -21,6 +21,9 @@ void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, Comma
     cmdList->setViewport(vp);
 
     // 3. 遍历 RenderQueue 绘制（每个 drawItem 绑定 UBO）
+    fprintf(stderr, "[DEBUG] SceneRenderer::render: %zu items, pso=%p\n",
+            queue.items().size(), (void*)pso);
+    fflush(stderr);
     for (const auto& item : queue.items()) {
         drawItem(item, cmdList);
     }
@@ -72,9 +75,9 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
 
         // 每次绘制绑定全部 3 个 UBO（descriptor set 是整体绑定的）
         RHIDevice::UniformBufferBind uboBinds[] = {
-            { 0, m_cameraBuffer,   0, 0 },
-            { 1, m_objectBuffer,   0, 0 },
-            { 2, m_materialBuffer, 0, 0 },
+            { 0, m_cameraBuffer,   0, m_cameraBuffer->desc().size },
+            { 1, m_objectBuffer,   0, m_objectBuffer->desc().size },
+            { 2, m_materialBuffer, 0, m_materialBuffer->desc().size },
         };
         m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
     }
@@ -96,6 +99,10 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         m_stats.triangles += gpu->vertexCount / 3;
     }
 
+    fprintf(stderr, "[DEBUG] drawItem: vb=%p ib=%p verts=%u idx=%u\n",
+            (void*)gpu->vertexBuffer, (void*)gpu->indexBuffer,
+            gpu->vertexCount, gpu->indexCount);
+    fflush(stderr);
     ++m_stats.drawCalls;
     ++m_stats.items;
 }

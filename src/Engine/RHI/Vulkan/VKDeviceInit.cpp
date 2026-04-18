@@ -9,6 +9,29 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
+// Vulkan 验证层调试回调
+// ============================================================
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT      severity,
+    VkDebugUtilsMessageTypeFlagsEXT             type,
+    const VkDebugUtilsMessengerCallbackDataEXT* data,
+    void*                                       /*userData*/)
+{
+    const char* prefix = "[VK]";
+    if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        prefix = "[VK ERROR]";
+    else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        prefix = "[VK WARN]";
+    else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+        prefix = "[VK INFO]";
+
+    fprintf(stderr, "%s %s\n", prefix, data->pMessage);
+    fflush(stderr);
+    return VK_FALSE;
+}
+
+// ============================================================
 // 构造 / 析构
 // ============================================================
 
@@ -251,6 +274,26 @@ void VKDevice::init(const CreateInfo& ci) {
     m_instance = vk::createInstance(instanceCI);
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_instance);
 
+    // --- 调试回调（使用 C API 避免 vulkan-hpp 回调类型不匹配）---
+    if (ci.enableValidation) {
+        VkDebugUtilsMessengerCreateInfoEXT dbgCI{};
+        dbgCI.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        dbgCI.messageSeverity  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+                               | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        dbgCI.messageType      = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                               | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                               | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        dbgCI.pfnUserCallback  = vkDebugCallback;
+
+        auto createFn = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+            vkGetInstanceProcAddr(VkInstance(m_instance), "vkCreateDebugUtilsMessengerEXT"));
+        VkDebugUtilsMessengerEXT messenger = VK_NULL_HANDLE;
+        if (createFn) {
+            createFn(VkInstance(m_instance), &dbgCI, nullptr, &messenger);
+            m_debugMessenger = vk::DebugUtilsMessengerEXT(messenger);
+        }
+    }
+
     // --- Surface（根据平台创建）---
     if (ci.window.valid()) {
         m_surface = createSurface(ci.window);
@@ -318,6 +361,13 @@ void VKDevice::shutdown() {
     if (m_device) {
         m_device.destroy();
         m_device = nullptr;
+    }
+
+    if (m_debugMessenger) {
+        auto destroyFn = VULKAN_HPP_DEFAULT_DISPATCHER.vkDestroyDebugUtilsMessengerEXT;
+        if (destroyFn)
+            destroyFn(VkInstance(m_instance), VkDebugUtilsMessengerEXT(m_debugMessenger), nullptr);
+        m_debugMessenger = nullptr;
     }
 
     if (m_instance) {
