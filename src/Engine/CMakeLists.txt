@@ -11,6 +11,7 @@ add_library(Engine STATIC
     Render/GeometryCache.cpp
     Render/SceneRenderer.cpp
     Render/EngineView.cpp
+    # Vulkan backend
     RHI/Vulkan/VKBuffer.cpp
     RHI/Vulkan/VKTexture.cpp
     RHI/Vulkan/VKShader.cpp
@@ -23,8 +24,22 @@ add_library(Engine STATIC
     RHI/Vulkan/VKSwapChain.cpp
     RHI/Vulkan/VKRenderTarget.cpp
     RHI/Vulkan/VKDevice.cpp
-    RHI/OpenGL/GLDevice.cpp
     RHI/Vulkan/VKDeviceInit.cpp
+    # D3D12 backend
+    RHI/D3D12/DX12Fence.cpp
+    RHI/D3D12/DX12DescriptorAllocator.cpp
+    RHI/D3D12/DX12Buffer.cpp
+    RHI/D3D12/DX12UploadContext.cpp
+    RHI/D3D12/DX12Texture.cpp
+    RHI/D3D12/DX12Shader.cpp
+    RHI/D3D12/DX12PipelineState.cpp
+    RHI/D3D12/DX12CommandList.cpp
+    RHI/D3D12/DX12SwapChain.cpp
+    RHI/D3D12/DX12RenderTarget.cpp
+    RHI/D3D12/DX12FrameContext.cpp
+    RHI/D3D12/DX12Device.cpp
+    # OpenGL backend (placeholder)
+    RHI/OpenGL/GLDevice.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...
@@ -55,6 +70,8 @@ target_link_libraries(Engine PUBLIC
     GPUOpen::VulkanMemoryAllocator
     OpenGL::GL
     glad::glad
+    d3d12
+    dxgi
 )
 
 target_compile_definitions(Engine PRIVATE

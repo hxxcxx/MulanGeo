@@ -1,5 +1,6 @@
 #include "Device.h"
 #include "Vulkan/VKDevice.h"
+#include "D3D12/DX12Device.h"
 #include "OpenGL/GLDevice.h"
 
 namespace MulanGeo::Engine {
@@ -9,12 +10,11 @@ std::unique_ptr<RHIDevice> RHIDevice::create(const DeviceCreateInfo& ci) {
     case GraphicsBackend::Vulkan:
         return std::make_unique<VKDevice>(ci);
 
+    case GraphicsBackend::D3D12:
+        return std::make_unique<DX12Device>(ci);
+
     case GraphicsBackend::OpenGL:
         return std::make_unique<GLDevice>(ci);
-
-    // 后续可扩展：
-    // case GraphicsBackend::D3D12:
-    //     return std::make_unique<D3D12Device>(ci);
 
     default:
         return nullptr;
