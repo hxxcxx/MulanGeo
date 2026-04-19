@@ -235,7 +235,7 @@ void EngineView::createPSOs() {
     solidDesc.ps                    = m_solidFs.get();
     solidDesc.vertexLayout          = m_vertexLayout;
     solidDesc.topology              = PrimitiveTopology::TriangleList;
-    solidDesc.cullMode              = CullMode::Back;
+    solidDesc.cullMode              = CullMode::None;
     solidDesc.frontFace             = FrontFace::CounterClockwise;
     solidDesc.fillMode              = FillMode::Solid;
     solidDesc.depthStencil.depthEnable = true;
