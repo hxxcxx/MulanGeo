@@ -87,14 +87,17 @@ private:
     // 轨道参数
     Vec3   m_target     = {0, 0, 0};
     double m_distance   = 10.0;
-    Quat   m_rotation   = Quat::identity();
+    // 初始视角：从斜上方俯视（约 30° 仰角，45° 方位角）
+    // 等价于先绕 Z 旋转 45°，再绕 X 旋转 -60°
+    Quat   m_rotation   = Quat::fromAxisAngle({0, 0, 1}, detail::kPi * 0.25)
+                        * Quat::fromAxisAngle({1, 0, 0}, -detail::kPi * 0.33);
 
     // 投影参数
     int    m_width      = 800;
     int    m_height     = 600;
     double m_fovY       = detail::kPi / 4.0;   // 45°
-    double m_nearZ      = 0.01;
-    double m_farZ       = 10000.0;
+    double m_nearZ      = 0.1;
+    double m_farZ       = 1000.0;
     bool   m_ortho      = true;
     double m_orthoSize  = 5.0;
 

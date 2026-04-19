@@ -94,12 +94,13 @@ void DX11Device::init(const DeviceCreateInfo& ci)
 
 Mat4 DX11Device::clipSpaceCorrectionMatrix() const
 {
+    // D3D11 NDC: Y↓, z∈[0,1]
+    // 投影矩阵产出 z∈[-1,1]，需映射到 [0,1]: z' = 0.5*z + 0.5*w
+    // w 必须保持不变，否则透视除法会污染 x/y
     Mat4 mat = Mat4::identity();
-    mat.m[1][1] = -1.0;
-    mat.m[2][2] = 0.5;
-    mat.m[2][3] = 0.5;
-    mat.m[3][2] = 0.5;
-    mat.m[3][3] = 1.0;
+    mat.m[1][1] = -1.0;   // Y 翻转
+    mat.m[2][2] =  0.5;   // z scale
+    mat.m[3][2] =  0.5;   // z offset
     return mat;
 }
 

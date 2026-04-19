@@ -8,7 +8,9 @@ GeometryCache::GeometryCache(RHIDevice* device)
 GeometryCache::~GeometryCache() { clear(); }
 
 const GpuGeometryBuffers* GeometryCache::getOrUpload(const RenderGeometry* geo) {
-    auto it = m_cache.find(geo);
+    // 用顶点数据指针做键（IO 层数据，跨帧稳定）
+    const void* key = geo->vertexBytes.data();
+    auto it = m_cache.find(key);
     if (it != m_cache.end()) return &it->second;
 
     return upload(geo);
@@ -46,7 +48,7 @@ const GpuGeometryBuffers* GeometryCache::upload(const RenderGeometry* geo) {
         buf.indexBuffer = m_device->createBuffer(desc);
     }
 
-    auto [it, _] = m_cache.emplace(geo, std::move(buf));
+    auto [it, _] = m_cache.emplace(geo->vertexBytes.data(), std::move(buf));
     return &it->second;
 }
 
