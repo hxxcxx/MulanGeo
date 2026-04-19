@@ -38,6 +38,16 @@ add_library(Engine STATIC
     RHI/D3D12/DX12RenderTarget.cpp
     RHI/D3D12/DX12FrameContext.cpp
     RHI/D3D12/DX12Device.cpp
+    # D3D11 backend
+    RHI/D3D11/DX11Buffer.cpp
+    RHI/D3D11/DX11Texture.cpp
+    RHI/D3D11/DX11Shader.cpp
+    RHI/D3D11/DX11Fence.cpp
+    RHI/D3D11/DX11PipelineState.cpp
+    RHI/D3D11/DX11CommandList.cpp
+    RHI/D3D11/DX11SwapChain.cpp
+    RHI/D3D11/DX11RenderTarget.cpp
+    RHI/D3D11/DX11Device.cpp
     # OpenGL backend (placeholder)
     RHI/OpenGL/GLDevice.cpp
 )
@@ -71,6 +81,7 @@ target_link_libraries(Engine PUBLIC
     OpenGL::GL
     glad::glad
     d3d12
+    d3d11
     dxgi
 )
 
@@ -181,6 +192,23 @@ if(DXC_EXECUTABLE)
             COMMENT "Compiling shader: ${SHADER_FILE} → ${DXIL_FILE} (DXIL)"
         )
         list(APPEND SHADER_OUTPUTS "${DXIL_OUTPUT}")
+
+        # --- DXBC (D3D11, SM 5.0) ---
+        string(REPLACE ".hlsl" ".dxbc" DXBC_FILE "${SHADER_FILE}")
+        set(DXBC_OUTPUT "${SHADER_OUTPUT_DIR}/${DXBC_FILE}")
+
+        add_custom_command(
+            OUTPUT  "${DXBC_OUTPUT}"
+            COMMAND "${DXC_EXECUTABLE}"
+                -T ${SHADER_STAGE}_5_0
+                -E ${SHADER_ENTRY}
+                -I "${SHADER_SOURCE_DIR}"
+                -Fo "${DXBC_OUTPUT}"
+                "${SHADER_INPUT}"
+            DEPENDS "${SHADER_INPUT}" "${SHADER_COMMON}"
+            COMMENT "Compiling shader: ${SHADER_FILE} → ${DXBC_FILE} (DXBC/SM5.0)"
+        )
+        list(APPEND SHADER_OUTPUTS "${DXBC_OUTPUT}")
     endforeach()
 
     add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})

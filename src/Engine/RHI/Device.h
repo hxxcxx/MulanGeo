@@ -33,6 +33,7 @@ enum class GraphicsBackend : uint8_t {
     OpenGL,
     Vulkan,
     D3D12,
+    D3D11,
 };
 
 // ============================================================
