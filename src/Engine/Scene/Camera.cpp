@@ -15,10 +15,11 @@ void Camera::setMode(CameraMode mode) {
 
     if (m_mode == CameraMode::Turntable && mode == CameraMode::Trackball) {
         // Turntable → Trackball：从 yaw/pitch 构建等效四元数
-        // 先绕 Z 旋转 yaw，再绕本地 X 旋转 -(pi/2 - pitch)
-        // 等效于：相机在 yaw/pitch 所描述的位置看向 target
-        Quat qYaw   = Quat::fromAxisAngle(Vec3::unitZ(), m_yaw);
-        Quat qPitch = Quat::fromAxisAngle(Vec3::unitX(), m_pitch - detail::kPi * 0.5);
+        // 参考帧: forward=+Y, right=+X, up=+Z
+        // Turntable(0,0) 的 forward=+X, right=-Y，相当于绕Z转-90°
+        // 因此: q = Rot(Z, yaw - pi/2) * Rot(X, pitch)
+        Quat qYaw   = Quat::fromAxisAngle(Vec3::unitZ(), m_yaw - detail::kPi * 0.5);
+        Quat qPitch = Quat::fromAxisAngle(Vec3::unitX(), m_pitch);
         m_rotation = (qYaw * qPitch).normalized();
     } else if (m_mode == CameraMode::Trackball && mode == CameraMode::Turntable) {
         // Trackball → Turntable：从四元数中提取 yaw/pitch
@@ -74,7 +75,7 @@ void Camera::pan(double dx, double dy) {
     Vec3 r = right();
     Vec3 u = up();
     double scale = (m_ortho ? m_orthoSize : m_distance) * m_panSpeed;
-    m_target = m_target - r * (dx * scale) - u * (dy * scale);
+    m_target = m_target - r * (dx * scale) + u * (dy * scale);
 }
 
 void Camera::zoom(double delta) {

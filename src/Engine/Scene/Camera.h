@@ -150,8 +150,10 @@ private:
 
     static Quat initTrackballRotation() {
         constexpr double pi = 3.14159265358979323846;
-        Quat qYaw   = Quat::fromAxisAngle(Vec3{0,0,1}, pi * 0.25);
-        Quat qPitch = Quat::fromAxisAngle(Vec3{1,0,0}, pi * 0.33 - pi * 0.5);
+        // q = Rot(Z, yaw - pi/2) * Rot(X, pitch)
+        // yaw=pi*0.25, pitch=pi*0.33
+        Quat qYaw   = Quat::fromAxisAngle(Vec3{0,0,1}, pi * 0.25 - pi * 0.5);
+        Quat qPitch = Quat::fromAxisAngle(Vec3{1,0,0}, pi * 0.33);
         return (qYaw * qPitch).normalized();
     }
 
