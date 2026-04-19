@@ -42,7 +42,8 @@ private:
     const GpuGeometryBuffers* upload(const RenderGeometry* geo);
 
     RHIDevice* m_device;
-    std::unordered_map<const RenderGeometry*, GpuGeometryBuffers> m_cache;
+    // 用顶点数据指针做键（来自 IO 层，跨帧稳定）
+    std::unordered_map<const void*, GpuGeometryBuffers> m_cache;
 };
 
 } // namespace MulanGeo::Engine
