@@ -44,7 +44,7 @@ bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
     config.stencilBuffer = false;
 
     DeviceCreateInfo ci;
-    ci.backend          = GraphicsBackend::D3D12;
+    ci.backend          = GraphicsBackend::Vulkan;
     ci.window           = window;
     ci.renderConfig     = config;
     ci.enableValidation = true;

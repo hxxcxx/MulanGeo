@@ -1,6 +1,6 @@
 /**
  * @file Camera.h
- * @brief 轨道相机，支持旋转、平移、缩放交互
+ * @brief 轨道相机，支持弧球旋转、平移、缩放交互
  * @author hxxcxx
  * @date 2026-04-15
  */
@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "../Math/Vec3.h"
+#include "../Math/Quat.h"
 #include "../Math/Mat4.h"
 #include "Frustum.h"
 
@@ -53,11 +54,17 @@ public:
     void setDistance(double dist) { m_distance = dist; }
     double distance() const { return m_distance; }
 
-    void setRotation(double theta, double phi);
+    const Quat& rotation() const { return m_rotation; }
+    void setRotation(const Quat& q) { m_rotation = q.normalized(); }
 
     // --- 交互 ---
 
+    /// 弧球旋转：屏幕坐标差 → 绕任意轴旋转
     void orbit(double dx, double dy);
+
+    /// 旋转矩阵（用于坐标轴 Gizmo）
+    Mat4 rotationMatrix() const { return m_rotation.toMat4(); }
+
     void pan(double dx, double dy);
     void zoom(double delta);
 
@@ -76,13 +83,11 @@ private:
     Vec3 computeOffset() const;
     Vec3 computeRight() const;
     Vec3 computeUp() const;
-    void clampPhi();
 
     // 轨道参数
     Vec3   m_target     = {0, 0, 0};
     double m_distance   = 10.0;
-    double m_theta      = detail::kPi * 0.25;  // 方位角（弧度）
-    double m_phi        = detail::kPi * 0.15;  // 仰角（弧度）
+    Quat   m_rotation   = Quat::identity();
 
     // 投影参数
     int    m_width      = 800;
@@ -90,12 +95,12 @@ private:
     double m_fovY       = detail::kPi / 4.0;   // 45°
     double m_nearZ      = 0.01;
     double m_farZ       = 10000.0;
-    bool   m_ortho      = false;
+    bool   m_ortho      = true;
     double m_orthoSize  = 5.0;
 
     // 交互速度
-    double m_orbitSpeed   = 0.005;
-    double m_panSpeed     = 0.002;
+    double m_orbitSpeed   = 0.008;
+    double m_panSpeed     = 0.003;
     double m_zoomSpeed    = 1.1;
     double m_minDistance  = 0.001;
 };

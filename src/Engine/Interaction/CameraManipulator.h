@@ -27,7 +27,7 @@ public:
         MouseButton panButton   = MouseButton::Middle;
         MouseButton panAltButton = MouseButton::Right;   ///< 可选的第二平移按钮
 
-        double zoomFactor   = 0.1;     ///< 每滚轮档位缩放百分比
+        double zoomFactor   = 1.0;     ///< 每滚轮档位缩放百分比
         double minDistance   = 0.001;
     };
 
@@ -75,7 +75,7 @@ public:
 
     bool onWheel(const InputEvent& e, Camera& cam) override {
         double delta = static_cast<double>(e.wheelDelta) * config.zoomFactor;
-        cam.zoom(delta);
+        cam.zoom(-delta);
         return true;
     }
 
