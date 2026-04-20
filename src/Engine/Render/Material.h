@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "../Math/Vec3.h"
+#include "../Math/Math.h"
 
 #include <cstdint>
 #include <cmath>
@@ -66,7 +66,7 @@ struct Material {
     double          shininess   = 32.0;
 
     // --- Emissive ---
-    Vec3            emissive    = Vec3::zero();
+    Vec3            emissive    = Vec3(0.0);
     double          emissiveStrength = 1.0;
 
     // --- Alpha Mask ---

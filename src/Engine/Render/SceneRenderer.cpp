@@ -67,7 +67,7 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
 
         ObjUBO obj{};
         for (int i = 0; i < 16; ++i)
-            obj.world[i] = static_cast<float>(item.worldTransform.data()[i]);
+            obj.world[i] = static_cast<float>(glm::value_ptr(item.worldTransform)[i]);
         // TODO: 计算 normalMat（世界矩阵的逆转置 3x3）
         obj.normalMat[0] = 1.0f; obj.normalMat[4] = 1.0f; obj.normalMat[8] = 1.0f;
         obj.pickId = item.pickId;

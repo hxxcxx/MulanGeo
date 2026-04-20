@@ -15,7 +15,7 @@
 #include "Shader.h"
 #include "SwapChain.h"
 #include "Texture.h"
-#include "../Math/Mat4.h"
+#include "../Math/Math.h"
 #include "../Window.h"
 
 #include <cstdint>

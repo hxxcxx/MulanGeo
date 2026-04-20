@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../Math/Mat4.h"
+#include "../Math/Math.h"
 #include "../Math/AABB.h"
 
 #include <cstdint>
@@ -130,8 +130,8 @@ private:
     bool        m_visible  = true;
     bool        m_selected = false;
 
-    Mat4     m_localTransform = Mat4::identity();
-    Mat4     m_worldTransform = Mat4::identity();
+    Mat4     m_localTransform = Mat4(1.0);
+    Mat4     m_worldTransform = Mat4(1.0);
     bool     m_worldDirty     = true;
     AABB     m_bounds;
 

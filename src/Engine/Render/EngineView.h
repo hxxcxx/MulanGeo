@@ -30,8 +30,7 @@
 #include "../Window.h"
 #include "SceneRenderer.h"
 #include "RenderGeometry.h"
-#include "../Math/Mat4.h"
-#include "../Math/Vec3.h"
+#include "../Math/Math.h"
 #include "../Math/AABB.h"
 
 #include <memory>

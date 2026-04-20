@@ -7,8 +7,7 @@
 
 #pragma once
 
-#include "../Math/Mat4.h"
-#include "../Math/Vec3.h"
+#include "../Math/Math.h"
 #include "../RHI/VertexLayout.h"
 #include "../RHI/PipelineState.h"
 
@@ -49,7 +48,7 @@ struct RenderGeometry {
 
 struct RenderItem {
     const RenderGeometry* geometry       = nullptr;
-    Mat4                  worldTransform = Mat4::identity();
+    Mat4                  worldTransform = Mat4(1.0);
     uint32_t              pickId         = 0;
     uint16_t              materialIndex  = 0xFFFF;  ///< 材质索引 (0xFFFF = 默认)
     uint8_t               renderPass     = 0;       ///< 0=Opaque, 1=Transparent
@@ -60,14 +59,14 @@ struct RenderItem {
 
     /// 计算不透明排序键（相同材质分组以减少状态切换，材质内按距离从近到远）
     void computeOpaqueSortKey(const Vec3& cameraPos) {
-        double distSq = (worldTransform.transformPoint(Vec3::zero()) - cameraPos).lengthSq();
+        double distSq = glm::length2(Vec3(worldTransform * Vec4(0,0,0,1)) - cameraPos);
         uint32_t distBits = static_cast<uint32_t>(distSq);       // 粗略距离桶
         sortKey = (static_cast<uint64_t>(materialIndex) << 32) | distBits;
     }
 
     /// 计算透明排序键（从远到近排序，保证正确的半透明混合）
     void computeTransparentSortKey(const Vec3& cameraPos) {
-        double distSq = (worldTransform.transformPoint(Vec3::zero()) - cameraPos).lengthSq();
+        double distSq = glm::length2(Vec3(worldTransform * Vec4(0,0,0,1)) - cameraPos);
         uint32_t distBits = static_cast<uint32_t>(distSq);
         sortKey = (static_cast<uint64_t>(0xFFFF - materialIndex) << 32)
                 | (0xFFFFFFFFu - distBits);  // 翻转使远距优先

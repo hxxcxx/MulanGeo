@@ -2,21 +2,24 @@
  * @file AABB.h
  * @brief 轴对齐包围盒，用于视锥体裁剪与碰撞检测
  * @author hxxcxx
- * @date 2026-04-15
+ * @date 2026-04-20
  */
 
 #pragma once
 
-#include "Vec3.h"
-#include "Mat4.h"
+#include "Math.h"
 
 #include <limits>
 
 namespace MulanGeo::Engine {
 
 struct AABB {
-    Vec3 min = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
-    Vec3 max = {std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest()};
+    Vec3 min = {std::numeric_limits<double>::max(),
+                std::numeric_limits<double>::max(),
+                std::numeric_limits<double>::max()};
+    Vec3 max = {std::numeric_limits<double>::lowest(),
+                std::numeric_limits<double>::lowest(),
+                std::numeric_limits<double>::lowest()};
 
     static AABB empty() { return {}; }
 
@@ -31,21 +34,23 @@ struct AABB {
     }
 
     void reset() {
-        min = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
-        max = {std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest()};
+        min = {std::numeric_limits<double>::max(),
+               std::numeric_limits<double>::max(),
+               std::numeric_limits<double>::max()};
+        max = {std::numeric_limits<double>::lowest(),
+               std::numeric_limits<double>::lowest(),
+               std::numeric_limits<double>::lowest()};
     }
 
-    // 扩展以包含点
     void expand(const Vec3& p) {
-        min = Vec3::min(min, p);
-        max = Vec3::max(max, p);
+        min = glm::min(min, p);
+        max = glm::max(max, p);
     }
 
-    // 扩展以包含另一个 AABB
     void expand(const AABB& b) {
         if (b.isEmpty()) return;
-        min = Vec3::min(min, b.min);
-        max = Vec3::max(max, b.max);
+        min = glm::min(min, b.min);
+        max = glm::max(max, b.max);
     }
 
     // --- 查询 ---
@@ -66,19 +71,17 @@ struct AABB {
             && (min.z <= b.max.z && max.z >= b.min.z);
     }
 
-    // 用矩阵变换 AABB，返回新的轴对齐包围盒
     AABB transformed(const Mat4& m) const {
         if (isEmpty()) return empty();
 
         AABB result;
-        // 变换 8 个角点，取新的包围盒
         for (int i = 0; i < 8; ++i) {
             Vec3 corner(
                 (i & 1) ? max.x : min.x,
                 (i & 2) ? max.y : min.y,
                 (i & 4) ? max.z : min.z
             );
-            result.expand(m.transformPoint(corner));
+            result.expand(Vec3(m * Vec4(corner, 1.0)));
         }
         return result;
     }

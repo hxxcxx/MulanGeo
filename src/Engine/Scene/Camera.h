@@ -12,16 +12,15 @@
  * Z-up 坐标系（CAD 惯例）。
  *
  * @author hxxcxx
- * @date 2026-04-15
+ * @date 2026-04-20
  */
 
 #pragma once
 
 #include <cmath>
 
-#include "../Math/Vec3.h"
-#include "../Math/Quat.h"
-#include "../Math/Mat4.h"
+#include "../Math/Math.h"
+#include "../Math/AABB.h"
 #include "Frustum.h"
 
 namespace MulanGeo::Engine {
@@ -87,7 +86,7 @@ public:
 
     // Trackball 专用
     const Quat& rotation() const { return m_rotation; }
-    void setRotation(const Quat& q) { m_rotation = q.normalized(); }
+    void setRotation(const Quat& q) { m_rotation = glm::normalize(q); }
 
     // ==================== 交互 ====================
 
@@ -134,45 +133,40 @@ private:
 
     // === 状态 ===
 
-    CameraMode m_mode = CameraMode::Trackball;  // 默认 Trackball
+    CameraMode m_mode = CameraMode::Trackball;
 
-    // 轨道共享参数
     Vec3   m_target   = {0, 0, 0};
     double m_distance = 10.0;
 
     // Turntable 参数（Z-up 球面坐标）
-    double m_yaw   = detail::kPi * 0.25;   // 方位角 45°
-    double m_pitch = detail::kPi * 0.33;   // 仰角 ~60°
+    double m_yaw   = detail::kPi * 0.25;
+    double m_pitch = detail::kPi * 0.33;
 
-    // Trackball 参数（四元数描述相机朝向）
-    // 初始值在构造时通过 initTrackballRotation() 与 Turntable 同步
+    // Trackball 参数（四元数）
     Quat m_rotation = initTrackballRotation();
 
     static Quat initTrackballRotation() {
         constexpr double pi = 3.14159265358979323846;
-        // q = Rot(Z, yaw - pi/2) * Rot(X, pitch)
-        // yaw=pi*0.25, pitch=pi*0.33
-        Quat qYaw   = Quat::fromAxisAngle(Vec3{0,0,1}, pi * 0.25 - pi * 0.5);
-        Quat qPitch = Quat::fromAxisAngle(Vec3{1,0,0}, pi * 0.33);
-        return (qYaw * qPitch).normalized();
+        Quat qYaw   = glm::angleAxis(pi * 0.25 - pi * 0.5, Vec3{0, 0, 1});
+        Quat qPitch = glm::angleAxis(pi * 0.33, Vec3{1, 0, 0});
+        return glm::normalize(qYaw * qPitch);
     }
 
     // 投影参数
     int    m_width    = 800;
     int    m_height   = 600;
-    double m_fovY     = detail::kPi / 4.0;    // 45°
+    double m_fovY     = detail::kPi / 4.0;
     double m_nearZ    = 0.1;
     double m_farZ     = 1000.0;
-    bool   m_ortho    = true;                  // 默认正交
+    bool   m_ortho    = true;
     double m_orthoSize = 5.0;
 
     // 交互速度
-    double m_orbitSpeed  = 0.005;   // 弧度/像素
+    double m_orbitSpeed  = 0.005;
     double m_panSpeed    = 0.003;
-    double m_zoomSpeed   = 1.08;    // 每档 8% 缩放
+    double m_zoomSpeed   = 1.08;
     double m_minDistance = 0.001;
 
-    // Turntable pitch 钳位
     static constexpr double kPi_      = 3.14159265358979323846;
     static constexpr double kMaxPitch =  kPi_ * 0.5 - 0.01;
     static constexpr double kMinPitch = -kPi_ * 0.5 + 0.01;

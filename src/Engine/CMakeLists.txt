@@ -3,7 +3,6 @@ add_library(Engine STATIC
     Platform/Win32Window.cpp
     RHI/vertex_layout_test.cpp
     RHI/DeviceFactory.cpp
-    Math/Mat4.cpp
     Scene/SceneNode.cpp
     Scene/Scene.cpp
     Scene/Frustum.cpp
@@ -65,6 +64,9 @@ target_include_directories(Engine PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
 
+# --- GLM (header-only math library) ---
+find_package(glm CONFIG REQUIRED)
+
 # --- OpenGL + GLAD (vcpkg) ---
 find_package(OpenGL REQUIRED)
 find_package(glad CONFIG REQUIRED)
@@ -76,6 +78,7 @@ find_package(Vulkan REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 target_link_libraries(Engine PUBLIC
+    glm::glm
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
     OpenGL::GL

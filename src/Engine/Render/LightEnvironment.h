@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "../Math/Vec3.h"
+#include "../Math/Math.h"
 
 #include <array>
 #include <cstdint>
@@ -42,10 +42,10 @@ struct Light {
     double intensity = 1.0;
 
     // Directional: 光照方向（从光源指向场景）
-    Vec3   direction = Vec3{-0.3, -1.0, -0.4}.normalized();
+    Vec3   direction = glm::normalize(Vec3{-0.3, -1.0, -0.4});
 
     // Point / Spot: 光源位置
-    Vec3   position  = Vec3::zero();
+    Vec3   position  = Vec3(0.0);
 
     // Point / Spot: 衰减范围
     double range     = 10.0;
@@ -61,7 +61,7 @@ struct Light {
     static Light directional(const Vec3& dir, const Vec3& color = {1,1,1}, double intensity = 1.0) {
         Light l;
         l.type = LightType::Directional;
-        l.direction = dir.normalized();
+        l.direction = glm::normalize(dir);
         l.color = color;
         l.intensity = intensity;
         return l;

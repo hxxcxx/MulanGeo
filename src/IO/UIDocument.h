@@ -16,6 +16,7 @@
 #include "SceneAdapter.h"
 
 #include "MulanGeo/Engine/Scene/Scene.h"
+#include "MulanGeo/Engine/Math/Math.h"
 #include "MulanGeo/Engine/Math/AABB.h"
 
 #include <memory>

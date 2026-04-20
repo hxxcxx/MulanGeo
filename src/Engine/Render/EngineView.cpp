@@ -405,8 +405,10 @@ void EngineView::updateCameraUBO() {
 
     // Mat4 内部是 double，UBO 需要 float，逐元素转换
     auto storeMat4 = [](float* dst, const Mat4& src) {
+        const float* p = reinterpret_cast<const float*>(
+            glm::value_ptr(FMat4(src)));
         for (int i = 0; i < 16; ++i)
-            dst[i] = static_cast<float>(src.data()[i]);
+            dst[i] = p[i];
     };
 
     storeMat4(ubo.view,           view);

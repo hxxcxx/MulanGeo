@@ -32,7 +32,7 @@ SceneNode* Scene::findByName(std::string_view name) {
 }
 
 void Scene::updateWorldTransforms() {
-    updateWorldTransform(root(), Mat4::identity());
+    updateWorldTransform(root(), Mat4(1.0));
 }
 
 void Scene::traverse(const NodeCallback& callback) {

@@ -2,14 +2,12 @@
  * @file BoundingSphere.h
  * @brief 包围球，用于快速剔除与碰撞检测
  * @author hxxcxx
- * @date 2026-04-17
+ * @date 2026-04-20
  */
 
 #pragma once
 
-#include "Vec3.h"
 #include "AABB.h"
-#include "Mat4.h"
 
 #include <cmath>
 #include <algorithm>
@@ -28,22 +26,20 @@ struct BoundingSphere {
         return {c, r};
     }
 
-    /// 从 AABB 计算外接球
     static BoundingSphere fromAABB(const AABB& box) {
         if (box.isEmpty()) return invalid();
         Vec3 c = box.center();
-        return {c, Vec3::distance(c, box.max)};
+        return {c, glm::distance(c, box.max)};
     }
 
     // --- 状态 ---
 
     bool isValid() const { return radius >= 0.0; }
 
-    void reset() { center = Vec3::zero(); radius = -1.0; }
+    void reset() { center = Vec3(0.0); radius = -1.0; }
 
     // --- 扩展 ---
 
-    /// 扩展以包含一个点
     void expand(const Vec3& point) {
         if (!isValid()) {
             center = point;
@@ -51,27 +47,23 @@ struct BoundingSphere {
             return;
         }
         Vec3 diff = point - center;
-        double dist = diff.length();
-        if (dist <= radius) return;   // 已包含
+        double dist = glm::length(diff);
+        if (dist <= radius) return;
 
-        // Ritter 更新：中心沿 diff 方向偏移
         double newRadius = (radius + dist) * 0.5;
         double shift = newRadius - radius;
         center += diff * (shift / dist);
         radius = newRadius;
     }
 
-    /// 扩展以包含另一球
     void expand(const BoundingSphere& other) {
         if (!other.isValid()) return;
         if (!isValid()) { *this = other; return; }
 
         Vec3 diff  = other.center - center;
-        double dist = diff.length();
+        double dist = glm::length(diff);
 
-        // 当前球完全包含 other
         if (dist + other.radius <= radius) return;
-        // other 完全包含当前球
         if (dist + radius <= other.radius) { *this = other; return; }
 
         double newRadius = (radius + dist + other.radius) * 0.5;
@@ -81,7 +73,6 @@ struct BoundingSphere {
         radius = newRadius;
     }
 
-    /// 扩展以包含 AABB
     void expand(const AABB& box) {
         if (box.isEmpty()) return;
         expand(BoundingSphere::fromAABB(box));
@@ -91,32 +82,30 @@ struct BoundingSphere {
 
     bool contains(const Vec3& point) const {
         if (!isValid()) return false;
-        return (point - center).lengthSq() <= radius * radius;
+        return glm::length2(point - center) <= radius * radius;
     }
 
     bool intersects(const BoundingSphere& other) const {
         if (!isValid() || !other.isValid()) return false;
         double r = radius + other.radius;
-        return (center - other.center).lengthSq() <= r * r;
+        return glm::length2(center - other.center) <= r * r;
     }
 
     bool intersects(const AABB& box) const {
         if (!isValid() || box.isEmpty()) return false;
-        // 最近点测试
-        Vec3 closest = Vec3::max(box.min, Vec3::min(box.max, center));
-        return (closest - center).lengthSq() <= radius * radius;
+        Vec3 closest = glm::max(box.min, glm::min(box.max, center));
+        return glm::length2(closest - center) <= radius * radius;
     }
 
     // --- 变换 ---
 
-    /// 用矩阵变换包围球（假定等比缩放，取 X 列长度作为缩放因子）
     BoundingSphere transformed(const Mat4& m) const {
         if (!isValid()) return invalid();
-        Vec3 newCenter = m.transformPoint(center);
-        // 从矩阵提取近似缩放：取三列长度的最大值
-        double sx = Vec3{m.m[0][0], m.m[0][1], m.m[0][2]}.length();
-        double sy = Vec3{m.m[1][0], m.m[1][1], m.m[1][2]}.length();
-        double sz = Vec3{m.m[2][0], m.m[2][1], m.m[2][2]}.length();
+        Vec3 newCenter = Vec3(m * Vec4(center, 1.0));
+        // 从矩阵列向量提取缩放因子
+        double sx = glm::length(Vec3(m[0]));
+        double sy = glm::length(Vec3(m[1]));
+        double sz = glm::length(Vec3(m[2]));
         double maxScale = std::max({sx, sy, sz});
         return {newCenter, radius * maxScale};
     }
