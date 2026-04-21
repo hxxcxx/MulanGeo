@@ -53,7 +53,6 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
     // 更新 Object UBO（每 draw call 一次）
     PipelineState* pso = selectPipeline();
     if (m_objectBuffer && m_device && pso) {
-        // 将 double Mat4 转为 float，并写入 buffer
         struct alignas(16) ObjUBO {
             float world[16];
             float normalMat[9];
@@ -66,7 +65,6 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         for (int i = 0; i < 16; ++i)
             obj.world[i] = static_cast<float>(glm::value_ptr(item.worldTransform)[i]);
 
-        // Normal matrix: inverse-transpose of world matrix, 3x3 部分
         Mat3 normalMat3 = glm::transpose(glm::inverse(Mat3(item.worldTransform)));
         for (int col = 0; col < 3; ++col)
             for (int row = 0; row < 3; ++row)
@@ -75,13 +73,33 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         obj.pickId = item.pickId;
         m_objectBuffer->update(0, sizeof(ObjUBO), &obj);
 
-        // 每次绘制绑定全部 3 个 UBO（descriptor set 是整体绑定的）
+        // 选中面：覆盖材质为高亮色
+        if (item.selected && m_materialBuffer) {
+            struct alignas(16) HighlightMat {
+                float baseColor[3]; float _p0;
+                float lightDir[3];  float _p1;
+                float ambientColor[3]; float _p2;
+                float wireColor[3]; float _p3;
+            };
+            HighlightMat hl{};
+            hl.baseColor[0] = 0.3f; hl.baseColor[1] = 0.6f; hl.baseColor[2] = 1.0f; // 高亮蓝
+            hl.lightDir[0]  = -0.3f; hl.lightDir[1]  = -1.0f; hl.lightDir[2]  = -0.4f;
+            hl.ambientColor[0] = 0.2f; hl.ambientColor[1] = 0.2f; hl.ambientColor[2] = 0.2f;
+            hl.wireColor[0] = 0.3f; hl.wireColor[1] = 0.6f; hl.wireColor[2] = 1.0f;
+            m_materialBuffer->update(0, sizeof(HighlightMat), &hl);
+        }
+
         RHIDevice::UniformBufferBind uboBinds[] = {
             { 0, m_cameraBuffer,   0, m_cameraBuffer->desc().size },
             { 1, m_objectBuffer,   0, m_objectBuffer->desc().size },
             { 2, m_materialBuffer, 0, m_materialBuffer->desc().size },
         };
         m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
+
+        // 选中面画完后恢复默认材质
+        if (item.selected && m_materialBuffer) {
+            // 下一个 item 的 drawItem 会重新绑定材质
+        }
     }
 
     // 绑定顶点缓冲区

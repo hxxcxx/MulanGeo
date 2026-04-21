@@ -27,11 +27,29 @@ void UIDocument::rebuildScene() {
     if (!meshDoc) return;
 
     uint32_t pickId = 1;
-    for (const auto& geo : meshDoc->geometries()) {
-        auto node = std::make_unique<Engine::GeometryNode>(geo->name, pickId++);
-        node->setMesh(geo.get());
-        node->setBoundingBox(geo->bounds);
+    for (const auto& part : meshDoc->parts()) {
+        auto node = std::make_unique<Engine::GeometryNode>(part.name, pickId);
+        ++pickId;  // 节点自身也需要一个 pickId（将来用于整件选择）
 
+        std::vector<Engine::GeometryNode::Face> faces;
+        Engine::AABB bounds;
+
+        for (const auto& faceMesh : part.faceMeshes) {
+            Engine::GeometryNode::Face face;
+            face.mesh   = faceMesh.get();
+            face.pickId = pickId++;
+            face.selected = false;
+            faces.push_back(face);
+
+            // 累加节点包围盒
+            if (!faceMesh->bounds.isEmpty()) {
+                bounds.expand(faceMesh->bounds.min);
+                bounds.expand(faceMesh->bounds.max);
+            }
+        }
+
+        node->setFaces(std::move(faces));
+        node->setBoundingBox(bounds);
         m_scene.addChild(std::move(node));
     }
     m_scene.updateWorldTransforms();

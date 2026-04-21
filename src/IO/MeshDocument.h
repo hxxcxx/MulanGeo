@@ -26,17 +26,12 @@ public:
     static std::unique_ptr<MeshDocument> fromImportResult(
         ImportResult result, std::string filePath);
 
-    /// 访问几何数据
-    const std::vector<std::unique_ptr<Engine::MeshGeometry>>& geometries() const {
-        return m_geometries;
-    }
-
-    std::vector<std::unique_ptr<Engine::MeshGeometry>>& geometries() {
-        return m_geometries;
-    }
+    /// 访问零件数据
+    const std::vector<Part>& parts() const { return m_parts; }
+    std::vector<Part>& parts() { return m_parts; }
 
 private:
-    std::vector<std::unique_ptr<Engine::MeshGeometry>> m_geometries;
+    std::vector<Part> m_parts;
 };
 
 } // namespace MulanGeo::IO

@@ -5,6 +5,7 @@ add_library(Engine STATIC
     RHI/DeviceFactory.cpp
     Scene/SceneNode.cpp
     Scene/Scene.cpp
+    Scene/GeometryNode.cpp
     Scene/Frustum.cpp
     Scene/Camera.cpp
     Render/GeometryCache.cpp

@@ -96,51 +96,57 @@ void triangulate(TopoDS_Shape& shape, double linearDeflection) {
     }
 }
 
-std::unique_ptr<Engine::MeshGeometry> extractMesh(const TopoDS_Shape& shape) {
+std::unique_ptr<Engine::MeshGeometry> extractSingleFace(const TopoDS_Face& face) {
+    TopLoc_Location loc;
+    Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(face, loc);
+    if (tri.IsNull()) return nullptr;
+
     auto mesh = std::make_unique<Engine::MeshGeometry>();
+    const gp_Trsf& trsf = loc.Transformation();
 
-    for (TopExp_Explorer faceExp(shape, TopAbs_FACE); faceExp.More(); faceExp.Next()) {
-        TopoDS_Face face = TopoDS::Face(faceExp.Current());
-        TopLoc_Location loc;
-
-        Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(face, loc);
-        if (tri.IsNull()) continue;
-
-        const gp_Trsf& trsf = loc.Transformation();
-        int baseIndex = static_cast<int>(mesh->vertexCount());
-        int nbNodes = tri->NbNodes();
-
-        for (int i = 1; i <= nbNodes; i++) {
-            gp_Pnt p = tri->Node(i).Transformed(trsf);
-            gp_Dir n(0, 0, 1);
-            if (tri->HasNormals()) {
-                n = tri->Normal(i).Transformed(trsf);
-            }
-            // pos(3) + normal(3) + uv(2)
-            mesh->vertices.push_back(static_cast<float>(p.X()));
-            mesh->vertices.push_back(static_cast<float>(p.Y()));
-            mesh->vertices.push_back(static_cast<float>(p.Z()));
-            mesh->vertices.push_back(static_cast<float>(n.X()));
-            mesh->vertices.push_back(static_cast<float>(n.Y()));
-            mesh->vertices.push_back(static_cast<float>(n.Z()));
-            mesh->vertices.push_back(0.0f);
-            mesh->vertices.push_back(0.0f);
+    int nbNodes = tri->NbNodes();
+    for (int i = 1; i <= nbNodes; i++) {
+        gp_Pnt p = tri->Node(i).Transformed(trsf);
+        gp_Dir n(0, 0, 1);
+        if (tri->HasNormals()) {
+            n = tri->Normal(i).Transformed(trsf);
         }
+        mesh->vertices.push_back(static_cast<float>(p.X()));
+        mesh->vertices.push_back(static_cast<float>(p.Y()));
+        mesh->vertices.push_back(static_cast<float>(p.Z()));
+        mesh->vertices.push_back(static_cast<float>(n.X()));
+        mesh->vertices.push_back(static_cast<float>(n.Y()));
+        mesh->vertices.push_back(static_cast<float>(n.Z()));
+        mesh->vertices.push_back(0.0f);
+        mesh->vertices.push_back(0.0f);
+    }
 
-        int nbTris = tri->NbTriangles();
-        for (int i = 1; i <= nbTris; i++) {
-            int n0, n1, n2;
-            tri->Triangle(i).Get(n0, n1, n2);
-            mesh->indices.push_back(static_cast<uint32_t>(baseIndex + n0 - 1));
-            mesh->indices.push_back(static_cast<uint32_t>(baseIndex + n1 - 1));
-            mesh->indices.push_back(static_cast<uint32_t>(baseIndex + n2 - 1));
-        }
+    int nbTris = tri->NbTriangles();
+    for (int i = 1; i <= nbTris; i++) {
+        int n0, n1, n2;
+        tri->Triangle(i).Get(n0, n1, n2);
+        mesh->indices.push_back(static_cast<uint32_t>(n0 - 1));
+        mesh->indices.push_back(static_cast<uint32_t>(n1 - 1));
+        mesh->indices.push_back(static_cast<uint32_t>(n2 - 1));
     }
 
     if (!mesh->empty()) {
         mesh->computeBounds();
     }
     return mesh;
+}
+
+Part extractPart(const TopoDS_Shape& shape) {
+    Part part;
+
+    for (TopExp_Explorer faceExp(shape, TopAbs_FACE); faceExp.More(); faceExp.Next()) {
+        auto faceMesh = extractSingleFace(TopoDS::Face(faceExp.Current()));
+        if (faceMesh && !faceMesh->empty()) {
+            part.faceMeshes.push_back(std::move(faceMesh));
+        }
+    }
+
+    return part;
 }
 
 } // anonymous namespace
@@ -156,33 +162,31 @@ ImportResult OCCTImporter::importFile(const std::string& path) {
         TopoDS_Shape shape = readFile(path);
 
         if (shape.ShapeType() == TopAbs_COMPOUND || shape.ShapeType() == TopAbs_COMPSOLID) {
-            // Try to split into separate solids
             bool hasSolids = false;
             for (TopExp_Explorer exp(shape, TopAbs_SOLID); exp.More(); exp.Next()) {
                 hasSolids = true;
                 TopoDS_Shape solid = exp.Current();
                 double deflection = computeLinearDeflection(solid);
                 triangulate(solid, deflection);
-                auto part = extractMesh(solid);
-                if (part && !part->empty()) {
-                    result.meshes.push_back(std::move(part));
+                auto part = extractPart(solid);
+                if (!part.faceMeshes.empty()) {
+                    result.parts.push_back(std::move(part));
                 }
             }
             if (!hasSolids) {
-                // Fallback: mesh entire shape as one
                 double deflection = computeLinearDeflection(shape);
                 triangulate(shape, deflection);
-                auto part = extractMesh(shape);
-                if (part && !part->empty()) {
-                    result.meshes.push_back(std::move(part));
+                auto part = extractPart(shape);
+                if (!part.faceMeshes.empty()) {
+                    result.parts.push_back(std::move(part));
                 }
             }
         } else {
             double deflection = computeLinearDeflection(shape);
             triangulate(shape, deflection);
-            auto part = extractMesh(shape);
-            if (part && !part->empty()) {
-                result.meshes.push_back(std::move(part));
+            auto part = extractPart(shape);
+            if (!part.faceMeshes.empty()) {
+                result.parts.push_back(std::move(part));
             }
         }
 

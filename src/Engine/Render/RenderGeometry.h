@@ -52,7 +52,7 @@ struct RenderItem {
     uint32_t              pickId         = 0;
     uint16_t              materialIndex  = 0xFFFF;  ///< 材质索引 (0xFFFF = 默认)
     uint8_t               renderPass     = 0;       ///< 0=Opaque, 1=Transparent
-    uint8_t               _pad           = 0;
+    bool                  selected       = false;   ///< 面/节点是否被选中
 
     /// 排序键：低32位材质索引（不透明：前排距离近优先；透明：后排距离远优先）
     uint64_t              sortKey        = 0;

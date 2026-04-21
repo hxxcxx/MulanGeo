@@ -14,8 +14,14 @@
 
 namespace MulanGeo::IO {
 
+// 一个零件（对应场景中的一个 GeometryNode）
+struct Part {
+    std::string name;
+    std::vector<std::unique_ptr<Engine::MeshGeometry>> faceMeshes; // 按面拆分的网格
+};
+
 struct ImportResult {
-    std::vector<std::unique_ptr<Engine::MeshGeometry>> meshes;
+    std::vector<Part> parts;
     std::string sourceFile;
     std::string error;
     bool success = false;

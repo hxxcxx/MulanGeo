@@ -1,6 +1,6 @@
 /**
  * @file SceneAdapter.h
- * @brief 场景适配器，IO层与Engine渲染层的桥接
+ * @brief 场景适配器，遍历场景树按面收集 RenderItem
  * @author hxxcxx
  * @date 2026-04-21
  */
@@ -16,10 +16,6 @@ namespace MulanGeo::IO {
 
 class SceneAdapter {
 public:
-    // 从场景树收集可见的 RenderItem 到队列
-    // scene:    场景树
-    // camera:   用于视锥体裁剪
-    // queue:    输出的渲染队列
     void collect(Engine::Scene& scene, const Engine::Camera& camera,
                  Engine::RenderQueue& queue)
     {
@@ -31,22 +27,24 @@ public:
             auto* geoNode = node.as<Engine::GeometryNode>();
             if (!geoNode) return;
 
-            auto* mesh = geoNode->mesh();
-            if (!mesh || mesh->empty()) return;
-
-            // 视锥体裁剪
+            // 视锥体裁剪（节点级别包围盒）
             const auto& bounds = node.boundingBox();
             if (!bounds.isEmpty() && !frustum.intersects(bounds)) return;
 
-            // MeshGeometry → RenderGeometry（零拷贝）
-            m_geometries.push_back(mesh->asRenderGeometry());
+            // 按面收集 RenderItem
+            for (const auto& face : geoNode->faces()) {
+                if (!face.mesh || face.mesh->empty()) continue;
 
-            Engine::RenderItem item;
-            item.geometry       = &m_geometries.back();
-            item.worldTransform = node.worldTransform();
-            item.pickId         = node.pickId();
+                m_geometries.push_back(face.mesh->asRenderGeometry());
 
-            queue.add(item);
+                Engine::RenderItem item;
+                item.geometry       = &m_geometries.back();
+                item.worldTransform = node.worldTransform();
+                item.pickId         = face.pickId;
+                item.selected       = face.selected;
+
+                queue.add(item);
+            }
         });
     }
 
