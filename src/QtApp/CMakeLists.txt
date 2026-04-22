@@ -3,15 +3,17 @@ set(CMAKE_AUTOMOC ON)
 
 add_executable(${PROJECT_NAME}
     main.cpp
-    MainWindow.cpp
-    MainWindow.h
-    RenderWidget.h
-    RenderWidget.cpp
+    UIDocument.h
+    UIDocument.cpp
+    UI/MainWindow.h
+    UI/MainWindow.cpp
+    UI/RenderWidget.h
+    UI/RenderWidget.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Engine
-    IO
+    Document
     SARibbon
     Qt6::Core
     Qt6::Gui
