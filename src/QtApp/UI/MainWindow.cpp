@@ -50,38 +50,13 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::buildRibbon() {
     auto* ribbon = ribbonBar();
-    ribbon->setRibbonStyle(SARibbonBar::RibbonStyleCompactTwoRow);
+    // 使用默认的 LooseThreeRow 风格，大按钮有足够高度显示 32x32 图标
     ribbon->showMinimumModeButton();
 
-    buildApplicationMenu();
     buildRibbonHomeCategory();
     buildRibbonViewCategory();
     buildQuickAccessBar();
     buildRightButtonBar();
-}
-
-void MainWindow::buildApplicationMenu() {
-    auto* appBtn = qobject_cast<SARibbonApplicationButton*>(ribbonBar()->applicationButton());
-    if (!appBtn) return;
-
-    appBtn->setText(tr("File"));
-
-    auto* menu = new QMenu(this);
-    m_actionOpen = menu->addAction(QIcon(":/app/bright/Icon/open.svg"), tr("Open"));
-    m_actionOpen->setShortcut(QKeySequence::Open);
-    connect(m_actionOpen, &QAction::triggered, this, &MainWindow::onOpenFile);
-
-    m_actionClose = menu->addAction(QIcon(":/app/bright/Icon/close.svg"), tr("Close"));
-    m_actionClose->setShortcut(QKeySequence::Close);
-    connect(m_actionClose, &QAction::triggered, m_docArea, &DocumentArea::closeCurrentDocument);
-
-    menu->addSeparator();
-
-    m_actionExit = menu->addAction(QIcon(":/app/bright/Icon/exit.svg"), tr("Exit"));
-    m_actionExit->setShortcut(QKeySequence::Quit);
-    connect(m_actionExit, &QAction::triggered, this, &QWidget::close);
-
-    appBtn->setMenu(menu);
 }
 
 void MainWindow::buildRibbonHomeCategory() {
@@ -90,17 +65,10 @@ void MainWindow::buildRibbonHomeCategory() {
 
     // ── File 面板 ──
     m_panelFile = new SARibbonPanel(tr("File"), m_categoryHome);
-    if (!m_actionOpen) {
-        m_actionOpen = new QAction(QIcon(":/app/bright/Icon/open.svg"), tr("Open"), this);
-        connect(m_actionOpen, &QAction::triggered, this, &MainWindow::onOpenFile);
-    }
+    m_actionOpen = new QAction(QIcon(":/app/bright/Icon/open.svg"), tr("Open"), this);
+    connect(m_actionOpen, &QAction::triggered, this, &MainWindow::onOpenFile);
     m_panelFile->addLargeAction(m_actionOpen);
 
-    if (!m_actionClose) {
-        m_actionClose = new QAction(QIcon(":/app/bright/Icon/close.svg"), tr("Close"), this);
-        connect(m_actionClose, &QAction::triggered, m_docArea, &DocumentArea::closeCurrentDocument);
-    }
-    m_panelFile->addSmallAction(m_actionClose);
     m_categoryHome->addPanel(m_panelFile);
 
     // ── Navigation 面板 ──

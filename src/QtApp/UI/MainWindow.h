@@ -27,7 +27,6 @@ private:
     void buildRibbon();
     void buildRibbonHomeCategory();
     void buildRibbonViewCategory();
-    void buildApplicationMenu();
     void buildQuickAccessBar();
     void buildRightButtonBar();
 
@@ -42,7 +41,6 @@ private:
 
     // --- Actions ---
     QAction* m_actionOpen   = nullptr;
-    QAction* m_actionClose  = nullptr;
     QAction* m_actionExit   = nullptr;
     QAction* m_actionFitAll = nullptr;
 
