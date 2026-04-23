@@ -10,9 +10,9 @@ setlocal EnableDelayedExpansion
 set BUILD_TYPE=%1
 if "%BUILD_TYPE%"=="" set BUILD_TYPE=Release
 
-:: 脚本所在目录的上级即为项目根目录
+:: 脚本所在目录的上级即为项目根目录（用 FOR 规范化，消除 .. 避免 call 路径解析失败）
 set SCRIPT_DIR=%~dp0
-set ROOT_DIR=%SCRIPT_DIR%..
+for %%A in ("%SCRIPT_DIR%..") do set ROOT_DIR=%%~fA
 set WASM_SRC_DIR=%ROOT_DIR%\src\build-wasm
 set BUILD_DIR=%ROOT_DIR%\build-wasm-%BUILD_TYPE%
 
@@ -75,6 +75,41 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: ── 3. 定位 Ninja（使用 Visual Studio 自带）────────────────
+set NINJA_EXE=
+
+:: emsdk 自带 ninja（upstream/bin/ninja.exe）
+if exist "%EMSDK_DIR%\upstream\bin\ninja.exe" (
+    set NINJA_EXE=%EMSDK_DIR%\upstream\bin\ninja.exe
+    echo [INFO] Using emsdk ninja: !NINJA_EXE!
+)
+
+:: Visual Studio 自带 ninja（遍历所有版本/SKU）
+if "!NINJA_EXE!"=="" (
+    for /d %%Y in ("C:\Program Files\Microsoft Visual Studio\*") do (
+        for /d %%E in ("%%Y\*") do (
+            if exist "%%E\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe" (
+                set NINJA_EXE=%%E\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe
+            )
+        )
+    )
+    if not "!NINJA_EXE!"=="" echo [INFO] Using Visual Studio ninja: !NINJA_EXE!
+)
+
+:: 系统 PATH 中的 ninja（兜底）
+if "!NINJA_EXE!"=="" (
+    where ninja >nul 2>&1
+    if not errorlevel 1 (
+        for /f "delims=" %%P in ('where ninja') do set NINJA_EXE=%%P
+        echo [INFO] Using system ninja: !NINJA_EXE!
+    )
+)
+
+if "!NINJA_EXE!"=="" (
+    echo [ERROR] Ninja not found. Please install Visual Studio with "C++ CMake tools for Windows" component.
+    exit /b 1
+)
+
 :: ── 3. 定位 GLM ──────────────────────────────────────────────
 :: 尝试从 vcpkg wasm32-emscripten triplet 获取 glm
 set GLM_DIR=
@@ -105,6 +140,7 @@ if not "%GLM_DIR%"=="" (
 emcmake cmake -S "%WASM_SRC_DIR%" ^
               -B "%BUILD_DIR%" ^
               -G Ninja ^
+              -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" ^
               -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
               %CMAKE_EXTRA%
 
