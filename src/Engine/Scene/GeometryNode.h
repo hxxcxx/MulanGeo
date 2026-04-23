@@ -1,6 +1,6 @@
 /**
  * @file GeometryNode.h
- * @brief 几何场景节点，持有按面拆分的网格数据，支持面级别选择
+ * @brief 几何场景节点，持有缓存的渲染几何数据
  * @author hxxcxx
  * @date 2026-04-21
  */
@@ -9,6 +9,7 @@
 
 #include "SceneNode.h"
 #include "../Geometry/MeshGeometry.h"
+#include "../Render/RenderGeometry.h"
 
 #include <cstdint>
 #include <vector>
@@ -18,8 +19,8 @@ namespace MulanGeo::Engine {
 // ============================================================
 // 几何节点 — 场景中可渲染的几何体
 //
-// 数据按面拆分存储，每个面有独立的 pickId，
-// 支持面级别的拾取、选择和高亮。
+// 持有从 MeshGeometry 缓存的 RenderGeometry，
+// 构建（SceneBuilder）时一次性生成，每帧直接使用无需重建。
 // ============================================================
 
 class GeometryNode final : public SceneNode {
@@ -36,6 +37,21 @@ public:
 
     explicit GeometryNode(std::string name = {}, uint32_t pickId = 0)
         : SceneNode(kType, std::move(name), pickId) {}
+
+    // --- 缓存的渲染几何（由 SceneBuilder 一次性设置）---
+
+    /// 设置缓存的 RenderGeometry（从 MeshGeometry::asRenderGeometry 生成）
+    void setCachedRenderGeometry(const RenderGeometry& geo) { m_cachedGeo = geo; }
+
+    /// 获取缓存的渲染几何（每帧直接使用，不重建）
+    const RenderGeometry& cachedRenderGeometry() const { return m_cachedGeo; }
+
+    /// 是否有可渲染数据
+    bool hasRenderData() const { return m_cachedGeo.vertexCount > 0; }
+
+    /// 材质索引（用于 RenderQueue 排序合并）
+    uint16_t materialIndex() const { return m_materialIndex; }
+    void setMaterialIndex(uint16_t idx) { m_materialIndex = idx; }
 
     // --- 面管理 ---
 
@@ -55,6 +71,8 @@ public:
     void clearFaceSelection();
 
 private:
+    RenderGeometry   m_cachedGeo;
+    uint16_t         m_materialIndex = 0xFFFF;
     std::vector<Face> m_faces;
 };
 

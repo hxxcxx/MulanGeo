@@ -1,15 +1,15 @@
 /**
  * @file UIDocument.cpp
- * @brief UIDocument 实现 — 遍历 Document Entity 填充 RenderQueue
+ * @brief UIDocument 实现 — 从 Scene 遍历可见节点填充 RenderQueue
  * @author hxxcxx
- * @date 2026-04-22
+ * @date 2026-04-23
  */
 #include "UIDocument.h"
+#include "SceneBuilder.h"
 
 #include <MulanGeo/Engine/Render/EngineView.h>
-#include <MulanGeo/Engine/Geometry/MeshGeometry.h>
-#include <MulanGeo/Document/Entity.h>
-#include <MulanGeo/Document/Geometry.h>
+#include <MulanGeo/Engine/Scene/GeometryNode.h>
+#include <MulanGeo/Engine/Scene/Frustum.h>
 
 UIDocument::UIDocument(MulanGeo::Document::Document* doc)
     : m_doc(doc)
@@ -23,38 +23,51 @@ void UIDocument::attachView(MulanGeo::Engine::EngineView* view) {
     if (m_view) detachView();
     m_view = view;
 
+    // 一次性构建 Scene
+    m_scene = SceneBuilder::build(*m_doc);
+    m_pickIdMap = SceneBuilder::buildPickIdMap(*m_doc);
+
+    // 设置 collector：从 Scene 遍历可见的 GeometryNode 填充 RenderQueue
     view->setCollector([this](const MulanGeo::Engine::Camera& cam,
                               MulanGeo::Engine::RenderQueue& queue) {
         queue.clear();
-        m_geometries.clear();
 
         auto frustum = cam.frustum();
+        auto camPos = cam.eyePosition();
 
-        m_doc->forEachEntity([&](MulanGeo::Document::Entity& entity) {
-            if (!entity.visible() || !entity.hasGeometry()) return;
+        m_scene->traverseVisible([&](MulanGeo::Engine::SceneNode& node) {
+            // 只处理 GeometryNode
+            auto* geoNode = node.as<MulanGeo::Engine::GeometryNode>();
+            if (!geoNode) return;
+            if (!geoNode->hasRenderData()) return;
 
-            auto* geo = entity.geometry();
-            auto bounds = geo->boundingBox();
+            // 视锥裁剪
+            const auto& bounds = geoNode->worldBoundingBox();
             if (!bounds.isEmpty() && !frustum.intersects(bounds)) return;
 
-            const auto* mesh = geo->displayMesh();
-            if (!mesh || mesh->empty()) return;
-
-            m_geometries.push_back(mesh->asRenderGeometry());
-
+            // 直接使用缓存的 RenderGeometry，不重建
             MulanGeo::Engine::RenderItem item;
-            item.geometry       = &m_geometries.back();
-            item.worldTransform = entity.localTransform();
-            item.pickId         = static_cast<uint32_t>(entity.id().value);
-            item.selected       = false;
+            item.geometry       = &geoNode->cachedRenderGeometry();
+            item.worldTransform = geoNode->worldTransform();
+            item.pickId         = geoNode->pickId();
+            item.materialIndex  = geoNode->materialIndex();
+            item.selected       = geoNode->selected();
 
             queue.add(item);
         });
     });
 
-    auto bounds = computeSceneBounds();
-    if (!bounds.isEmpty()) {
-        view->camera().fitToBox(bounds);
+    // 适配相机到场景包围盒
+    MulanGeo::Engine::AABB sceneBounds;
+    m_scene->traverse([&](MulanGeo::Engine::SceneNode& node) {
+        const auto& bounds = node.worldBoundingBox();
+        if (!bounds.isEmpty()) {
+            sceneBounds.expand(bounds.min);
+            sceneBounds.expand(bounds.max);
+        }
+    });
+    if (!sceneBounds.isEmpty()) {
+        view->camera().fitToBox(sceneBounds);
     }
 }
 
@@ -63,18 +76,12 @@ void UIDocument::detachView() {
         m_view->clearCollector();
         m_view = nullptr;
     }
+    m_scene.reset();
+    m_pickIdMap.clear();
 }
 
-MulanGeo::Engine::AABB UIDocument::computeSceneBounds() {
-    MulanGeo::Engine::AABB bounds;
-    m_doc->forEachEntity([&](const MulanGeo::Document::Entity& entity) {
-        if (entity.hasGeometry()) {
-            auto entityBounds = entity.geometry()->boundingBox();
-            if (!entityBounds.isEmpty()) {
-                bounds.expand(entityBounds.min);
-                bounds.expand(entityBounds.max);
-            }
-        }
-    });
-    return bounds;
+MulanGeo::Document::EntityId UIDocument::resolvePickId(uint32_t pickId) const {
+    auto it = m_pickIdMap.find(pickId);
+    if (it != m_pickIdMap.end()) return it->second;
+    return {};
 }

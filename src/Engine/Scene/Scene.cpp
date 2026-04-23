@@ -78,15 +78,19 @@ SceneNode* Scene::findByName(SceneNode* node, std::string_view name) {
 void Scene::updateWorldTransform(SceneNode* node, const Mat4& parentWorld) {
     if (!node) return;
 
-    // 仅在 dirty 时針新计算世界矩阵
-    if (node->m_worldDirty) {
+    // 仅在 dirty 时重新计算世界矩阵
+    if (node->isDirty(SceneNode::DirtyFlag::Transform)) {
         node->m_worldTransform = parentWorld * node->localTransform();
-        node->m_worldDirty = false;
+        node->markDirty(SceneNode::DirtyFlag::Bounds);
 
-        // 父节点坘杢改坘时，级蝔标记所有孝节点
+        // 父节点变换改变时，级联标记所有子节点
         for (auto& child : node->children()) {
-            child->m_worldDirty = true;
+            child->markDirty(SceneNode::DirtyFlag::Transform | SceneNode::DirtyFlag::Bounds);
         }
+
+        // 只清除 Transform 脏标记（保留 Bounds 等其他标记）
+        node->m_dirtyFlags = static_cast<SceneNode::DirtyFlag>(
+            static_cast<uint8_t>(node->m_dirtyFlags) & ~static_cast<uint8_t>(SceneNode::DirtyFlag::Transform));
     }
 
     for (auto& child : node->children()) {

@@ -5,6 +5,8 @@ add_executable(${PROJECT_NAME}
     main.cpp
     UI/UIDocument.h
     UI/UIDocument.cpp
+    UI/SceneBuilder.h
+    UI/SceneBuilder.cpp
     UI/MainWindow.h
     UI/MainWindow.cpp
     UI/RenderWidget.h

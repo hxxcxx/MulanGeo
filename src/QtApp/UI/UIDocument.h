@@ -6,7 +6,8 @@
  *
  * 职责：
  *  - 持有 Document（数据）
- *  - 通过 collector 回调将 Entity 的 displayMesh() 喂给 EngineView
+ *  - 通过 SceneBuilder 一次性构建 Scene
+ *  - collector 回调从 Scene 遍历可见节点填充 RenderQueue
  *  - 管理视图绑定（attach/detach）
  *
  * 位于 QtApp 层，是唯一同时依赖 Document 模块和 Engine 模块的类。
@@ -14,13 +15,14 @@
 #pragma once
 
 #include <MulanGeo/Document/Document.h>
+#include <MulanGeo/Engine/Scene/Scene.h>
 #include <MulanGeo/Engine/Render/RenderGeometry.h>
 #include <MulanGeo/Engine/Scene/Camera.h>
 #include <MulanGeo/Engine/Math/Math.h>
 #include <MulanGeo/Engine/Math/AABB.h>
 
-#include <deque>
 #include <memory>
+#include <unordered_map>
 
 namespace MulanGeo::Engine {
 class EngineView;
@@ -36,9 +38,14 @@ public:
     MulanGeo::Document::Document& document() { return *m_doc; }
     const MulanGeo::Document::Document& document() const { return *m_doc; }
 
+    // --- 场景 ---
+
+    MulanGeo::Engine::Scene* scene() { return m_scene.get(); }
+    const MulanGeo::Engine::Scene* scene() const { return m_scene.get(); }
+
     // --- 视图连接 ---
 
-    /// 绑定 EngineView（设置 collector 回调 + 适配相机）
+    /// 绑定 EngineView（构建场景 + 设置 collector 回调 + 适配相机）
     void attachView(MulanGeo::Engine::EngineView* view);
 
     /// 解除绑定
@@ -46,13 +53,16 @@ public:
 
     MulanGeo::Engine::EngineView* view() const { return m_view; }
 
-private:
-    /// 计算所有 Entity 的总包围盒
-    MulanGeo::Engine::AABB computeSceneBounds();
+    /// 通过 pickId 反查 EntityId（拾取用）
+    MulanGeo::Document::EntityId resolvePickId(uint32_t pickId) const;
 
+private:
     MulanGeo::Document::Document*  m_doc;   // 不拥有，由 DocumentManager 管理
     MulanGeo::Engine::EngineView*  m_view = nullptr;
 
-    /// collector 持有的渲染几何缓存（每帧重建）
-    std::deque<MulanGeo::Engine::RenderGeometry> m_geometries;
+    /// 由 SceneBuilder 一次性构建的渲染场景
+    std::unique_ptr<MulanGeo::Engine::Scene> m_scene;
+
+    /// pickId → EntityId 映射（拾取反查用）
+    std::unordered_map<uint32_t, MulanGeo::Document::EntityId> m_pickIdMap;
 };

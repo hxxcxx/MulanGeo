@@ -40,6 +40,16 @@ class SceneNode {
 public:
     virtual ~SceneNode() = default;
 
+    // --- 脏标记 ---
+
+    enum class DirtyFlag : uint8_t {
+        None       = 0,
+        Transform  = 1 << 0,
+        Visibility = 1 << 1,
+        Bounds     = 1 << 2,
+        All        = Transform | Visibility | Bounds,
+    };
+
     // --- 类型查询 ---
 
     MulanGeo::NodeType type() const { return m_type; }
@@ -92,7 +102,7 @@ public:
     // --- 可见性 ---
 
     bool visible() const { return m_visible; }
-    void setVisible(bool v) { m_visible = v; }
+    void setVisible(bool v);
 
     // 是否实际可见（自身 + 所有祖先都可见）
     bool isEffectivelyVisible() const;
@@ -105,18 +115,30 @@ public:
     // --- 变换 ---
 
     const Mat4& localTransform() const { return m_localTransform; }
-    void setLocalTransform(const Mat4& t) { m_localTransform = t; m_worldDirty = true; }
+    void setLocalTransform(const Mat4& t);
 
     const Mat4& worldTransform() const { return m_worldTransform; }
 
     // 标记世界变换需要重新计算
-    void markDirty() { m_worldDirty = true; }
-    bool isWorldDirty() const { return m_worldDirty; }
+    void markDirty(DirtyFlag flag) { m_dirtyFlags = static_cast<DirtyFlag>(static_cast<uint8_t>(m_dirtyFlags) | static_cast<uint8_t>(flag)); }
+    bool isDirty(DirtyFlag flag) const { return (static_cast<uint8_t>(m_dirtyFlags) & static_cast<uint8_t>(flag)) != 0; }
+    bool hasAnyDirty() const { return m_dirtyFlags != DirtyFlag::None; }
+    void clearDirty() { m_dirtyFlags = DirtyFlag::None; }
 
-    // --- 包围盒（世界空间）---
+    // 兼容旧接口
+    void markWorldDirty() { markDirty(DirtyFlag::Transform); }
+    bool isWorldDirty() const { return isDirty(DirtyFlag::Transform); }
 
-    const AABB& boundingBox() const { return m_bounds; }
-    void setBoundingBox(const AABB& bounds) { m_bounds = bounds; }
+    // --- 包围盒 ---
+
+    const AABB& localBoundingBox() const { return m_localBounds; }
+    void setLocalBoundingBox(const AABB& bounds) { m_localBounds = bounds; markDirty(DirtyFlag::Bounds); }
+
+    const AABB& worldBoundingBox() const { return m_worldBounds; }
+
+    // 兼容旧接口
+    const AABB& boundingBox() const { return m_worldBounds; }
+    void setBoundingBox(const AABB& bounds) { m_localBounds = bounds; m_worldBounds = bounds; }
 
     // --- 选择状态 ---
 
@@ -132,11 +154,21 @@ private:
 
     Mat4     m_localTransform = Mat4(1.0);
     Mat4     m_worldTransform = Mat4(1.0);
-    bool     m_worldDirty     = true;
-    AABB     m_bounds;
+    DirtyFlag m_dirtyFlags    = DirtyFlag::All;
+
+    AABB     m_localBounds;
+    AABB     m_worldBounds;
 
     SceneNode*  m_parent = nullptr;
     std::vector<std::unique_ptr<SceneNode>> m_children;
 };
+
+// DirtyFlag 位运算
+inline SceneNode::DirtyFlag operator|(SceneNode::DirtyFlag a, SceneNode::DirtyFlag b) {
+    return static_cast<SceneNode::DirtyFlag>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+inline SceneNode::DirtyFlag operator&(SceneNode::DirtyFlag a, SceneNode::DirtyFlag b) {
+    return static_cast<SceneNode::DirtyFlag>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
 
 } // namespace MulanGeo::Engine
