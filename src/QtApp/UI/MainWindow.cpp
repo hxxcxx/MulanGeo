@@ -5,7 +5,7 @@
  * @date 2026-04-22
  */
 #include "MainWindow.h"
-#include "RenderWidget.h"
+#include "DocWidget.h"
 #include "UIDocument.h"
 
 #include <MulanGeo/Document/Document.h>
@@ -54,7 +54,7 @@ void MainWindow::showWelcomePage() {
 
     auto* welcome = new QLabel(
         "<h2 style='color:#888;'>MulanGeo</h2>"
-        "<p style='color:#aaa;'>Open a CAD file to begin — File → Open, or drag & drop</p>",
+        "<p style='color:#aaa;'>Open a CAD file to begin: File → Open, or drag & drop</p>",
         this);
     welcome->setAlignment(Qt::AlignCenter);
     welcome->setStyleSheet("background-color: #2b2b2b;");
@@ -70,7 +70,7 @@ void MainWindow::showRenderView(UIDocument* uiDoc) {
     }
 
     if (!m_renderWidget) {
-        m_renderWidget = new RenderWidget(this);
+        m_renderWidget = new DocWidget(this);
         m_stack->addWidget(m_renderWidget);
     }
     m_stack->setCurrentWidget(m_renderWidget);

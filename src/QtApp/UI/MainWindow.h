@@ -13,7 +13,7 @@
 
 #include <memory>
 
-class RenderWidget;
+class DocWidget;
 
 class MainWindow : public SARibbonMainWindow {
     Q_OBJECT
@@ -31,7 +31,7 @@ private:
     void dropEvent(QDropEvent* e) override;
 
     QStackedWidget* m_stack = nullptr;
-    RenderWidget*   m_renderWidget = nullptr;
+    DocWidget*      m_renderWidget = nullptr;
 
     MulanGeo::Document::DocumentManager m_docManager;
     std::unique_ptr<UIDocument>         m_uiDoc;

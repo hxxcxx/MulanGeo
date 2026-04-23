@@ -1,10 +1,10 @@
 /**
- * @file RenderWidget.cpp
+ * @file DocWidget.cpp
  * @brief Qt 渲染控件实现 — 事件翻译 + EngineView 驱动
  * @author hxxcxx
  * @date 2026-04-22
  */
-#include "RenderWidget.h"
+#include "DocWidget.h"
 #include "UIDocument.h"
 
 #include <QShowEvent>
@@ -19,7 +19,7 @@
 
 using namespace MulanGeo::Engine;
 
-RenderWidget::RenderWidget(QWidget* parent)
+DocWidget::DocWidget(QWidget* parent)
     : QWidget(parent)
 {
     setAttribute(Qt::WA_PaintOnScreen);
@@ -28,9 +28,9 @@ RenderWidget::RenderWidget(QWidget* parent)
     setMinimumSize(320, 240);
 }
 
-RenderWidget::~RenderWidget() = default;
+DocWidget::~DocWidget() = default;
 
-void RenderWidget::showEvent(QShowEvent* e) {
+void DocWidget::showEvent(QShowEvent* e) {
     QWidget::showEvent(e);
     if (!m_view.isInitialized()) {
 #ifdef _WIN32
@@ -52,7 +52,7 @@ void RenderWidget::showEvent(QShowEvent* e) {
     }
 }
 
-void RenderWidget::resizeEvent(QResizeEvent* e) {
+void DocWidget::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
     if (m_view.isInitialized()) {
         const qreal dpr = devicePixelRatioF();
@@ -63,11 +63,11 @@ void RenderWidget::resizeEvent(QResizeEvent* e) {
     }
 }
 
-void RenderWidget::paintEvent(QPaintEvent*) {
+void DocWidget::paintEvent(QPaintEvent*) {
     if (m_view.isInitialized()) requestFrame();
 }
 
-void RenderWidget::mousePressEvent(QMouseEvent* e) {
+void DocWidget::mousePressEvent(QMouseEvent* e) {
     auto ev = InputEvent::mousePress(
         e->pos().x(), e->pos().y(),
         translateButton(e->button()),
@@ -77,7 +77,7 @@ void RenderWidget::mousePressEvent(QMouseEvent* e) {
     requestFrame();
 }
 
-void RenderWidget::mouseReleaseEvent(QMouseEvent* e) {
+void DocWidget::mouseReleaseEvent(QMouseEvent* e) {
     auto ev = InputEvent::mouseRelease(
         e->pos().x(), e->pos().y(),
         translateButton(e->button()),
@@ -87,7 +87,7 @@ void RenderWidget::mouseReleaseEvent(QMouseEvent* e) {
     requestFrame();
 }
 
-void RenderWidget::mouseMoveEvent(QMouseEvent* e) {
+void DocWidget::mouseMoveEvent(QMouseEvent* e) {
     auto ev = InputEvent::mouseMove(
         e->pos().x(), e->pos().y(),
         translateButtons(e->buttons()),
@@ -96,7 +96,7 @@ void RenderWidget::mouseMoveEvent(QMouseEvent* e) {
     requestFrame();
 }
 
-void RenderWidget::mouseDoubleClickEvent(QMouseEvent* e) {
+void DocWidget::mouseDoubleClickEvent(QMouseEvent* e) {
     InputEvent ev{};
     ev.type      = InputEvent::Type::MouseDoubleClick;
     ev.x         = e->pos().x();
@@ -108,7 +108,7 @@ void RenderWidget::mouseDoubleClickEvent(QMouseEvent* e) {
     requestFrame();
 }
 
-void RenderWidget::wheelEvent(QWheelEvent* e) {
+void DocWidget::wheelEvent(QWheelEvent* e) {
     float delta = e->angleDelta().y() / 120.0f;
     auto ev = InputEvent::wheel(
         static_cast<int>(e->position().x()),
@@ -119,7 +119,7 @@ void RenderWidget::wheelEvent(QWheelEvent* e) {
     requestFrame();
 }
 
-void RenderWidget::keyPressEvent(QKeyEvent* e) {
+void DocWidget::keyPressEvent(QKeyEvent* e) {
     auto ev = InputEvent::keyPress(
         translateKey(e->key()),
         translateModifiers(e->modifiers()));
@@ -127,7 +127,7 @@ void RenderWidget::keyPressEvent(QKeyEvent* e) {
     requestFrame();
 }
 
-void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
+void DocWidget::keyReleaseEvent(QKeyEvent* e) {
     auto ev = InputEvent::keyRelease(
         translateKey(e->key()),
         translateModifiers(e->modifiers()));
@@ -135,7 +135,7 @@ void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
     requestFrame();
 }
 
-void RenderWidget::setUIDocument(UIDocument* doc) {
+void DocWidget::setUIDocument(UIDocument* doc) {
     if (m_uiDoc) m_uiDoc->detachView();
     m_uiDoc = doc;
 
@@ -145,13 +145,13 @@ void RenderWidget::setUIDocument(UIDocument* doc) {
     }
 }
 
-void RenderWidget::requestFrame() {
+void DocWidget::requestFrame() {
     if (m_view.isInitialized() && isVisible()) {
         m_view.renderFrame();
     }
 }
 
-MulanGeo::Engine::MouseButton RenderWidget::translateButton(Qt::MouseButton btn) {
+MulanGeo::Engine::MouseButton DocWidget::translateButton(Qt::MouseButton btn) {
     switch (btn) {
     case Qt::LeftButton:   return MouseButton::Left;
     case Qt::RightButton:  return MouseButton::Right;
@@ -160,7 +160,7 @@ MulanGeo::Engine::MouseButton RenderWidget::translateButton(Qt::MouseButton btn)
     }
 }
 
-MulanGeo::Engine::MouseButton RenderWidget::translateButtons(Qt::MouseButtons btns) {
+MulanGeo::Engine::MouseButton DocWidget::translateButtons(Qt::MouseButtons btns) {
     MouseButton result = MouseButton::None;
     if (btns & Qt::LeftButton)   result = result | MouseButton::Left;
     if (btns & Qt::RightButton)  result = result | MouseButton::Right;
@@ -168,7 +168,7 @@ MulanGeo::Engine::MouseButton RenderWidget::translateButtons(Qt::MouseButtons bt
     return result;
 }
 
-MulanGeo::Engine::KeyModifier RenderWidget::translateModifiers(Qt::KeyboardModifiers mods) {
+MulanGeo::Engine::KeyModifier DocWidget::translateModifiers(Qt::KeyboardModifiers mods) {
     KeyModifier result = KeyModifier::None;
     if (mods & Qt::ControlModifier) result = result | KeyModifier::Ctrl;
     if (mods & Qt::ShiftModifier)   result = result | KeyModifier::Shift;
@@ -176,7 +176,7 @@ MulanGeo::Engine::KeyModifier RenderWidget::translateModifiers(Qt::KeyboardModif
     return result;
 }
 
-MulanGeo::Engine::Key RenderWidget::translateKey(int qtKey) {
+MulanGeo::Engine::Key DocWidget::translateKey(int qtKey) {
     switch (qtKey) {
     case Qt::Key_Escape:    return Key::Escape;
     case Qt::Key_Return:

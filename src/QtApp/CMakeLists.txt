@@ -9,8 +9,8 @@ add_executable(${PROJECT_NAME}
     UI/SceneBuilder.cpp
     UI/MainWindow.h
     UI/MainWindow.cpp
-    UI/RenderWidget.h
-    UI/RenderWidget.cpp
+    UI/DocWidget.h
+    UI/DocWidget.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
