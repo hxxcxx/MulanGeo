@@ -15,14 +15,6 @@ foreach(hdr ${CORE_HEADERS})
     configure_file("${hdr}" "${CMAKE_BINARY_DIR}/include/MulanGeo/Core/${rel}" COPYONLY)
 endforeach()
 
-# CoreExport.h
-file(GLOB_RECURSE EXPORT_HEADER
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
-)
-foreach(hdr ${EXPORT_HEADER})
-    configure_file("${hdr}" "${CMAKE_BINARY_DIR}/include/MulanGeo/Core" COPYONLY)
-endforeach()
-
 target_include_directories(Core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
