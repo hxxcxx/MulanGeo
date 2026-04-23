@@ -137,8 +137,15 @@ echo [SUCCESS] Build complete! Output:
 if exist "%BUILD_DIR%\MulanGeoWasm.html" echo   %BUILD_DIR%\MulanGeoWasm.html
 if exist "%BUILD_DIR%\MulanGeoWasm.js"   echo   %BUILD_DIR%\MulanGeoWasm.js
 if exist "%BUILD_DIR%\MulanGeoWasm.wasm" echo   %BUILD_DIR%\MulanGeoWasm.wasm
+
+:: ── 9. 启动本地服务器并自动打开浏览器 ──────────────────────
 echo.
-echo   To run: cd "%BUILD_DIR%" ^&^& python -m http.server 8080
-echo   Then open: http://localhost:8080/MulanGeoWasm.html
+echo [INFO] Starting local HTTP server on http://localhost:8080 ...
+
+:: 延迟 1 秒后自动打开浏览器（给服务器启动留出时间）
+start "" /b cmd /c "ping 127.0.0.1 -n 2 >nul && start http://localhost:8080/MulanGeoWasm.html"
+
+cd /d "%BUILD_DIR%"
+python -m http.server 8080
 
 endlocal
