@@ -1,6 +1,6 @@
 /**
  * @file UIDocument.cpp
- * @brief UIDocument 实现 — 从 Scene 遍历可见节点填充 RenderQueue
+ * @brief UIDocument 实现 — 桥接 Document 数据层与 EngineView 渲染层
  * @author hxxcxx
  * @date 2026-04-23
  */
@@ -9,7 +9,6 @@
 
 #include <MulanGeo/Engine/Render/EngineView.h>
 #include <MulanGeo/Engine/Scene/GeometryNode.h>
-#include <MulanGeo/Engine/Scene/Frustum.h>
 
 UIDocument::UIDocument(MulanGeo::Document::Document* doc)
     : m_doc(doc)
@@ -24,38 +23,11 @@ void UIDocument::attachView(MulanGeo::Engine::EngineView* view) {
     m_view = view;
 
     // 一次性构建 Scene
-    m_scene = SceneBuilder::build(*m_doc);
-    m_pickIdMap = SceneBuilder::buildPickIdMap(*m_doc);
+    m_scene = SceneBuilder::build(m_doc);
+    m_pickIdMap = SceneBuilder::buildPickIdMap(m_doc);
 
-    // 设置 collector：从 Scene 遍历可见的 GeometryNode 填充 RenderQueue
-    view->setCollector([this](const MulanGeo::Engine::Camera& cam,
-                              MulanGeo::Engine::RenderQueue& queue) {
-        queue.clear();
-
-        auto frustum = cam.frustum();
-        auto camPos = cam.eyePosition();
-
-        m_scene->traverseVisible([&](MulanGeo::Engine::SceneNode& node) {
-            // 只处理 GeometryNode
-            auto* geoNode = node.as<MulanGeo::Engine::GeometryNode>();
-            if (!geoNode) return;
-            if (!geoNode->hasRenderData()) return;
-
-            // 视锥裁剪
-            const auto& bounds = geoNode->worldBoundingBox();
-            if (!bounds.isEmpty() && !frustum.intersects(bounds)) return;
-
-            // 直接使用缓存的 RenderGeometry，不重建
-            MulanGeo::Engine::RenderItem item;
-            item.geometry       = &geoNode->cachedRenderGeometry();
-            item.worldTransform = geoNode->worldTransform();
-            item.pickId         = geoNode->pickId();
-            item.materialIndex  = geoNode->materialIndex();
-            item.selected       = geoNode->selected();
-
-            queue.add(item);
-        });
-    });
+    // 直接设置场景，EngineView 内部处理收集逻辑
+    view->setScene(m_scene.get());
 
     // 适配相机到场景包围盒
     MulanGeo::Engine::AABB sceneBounds;
@@ -73,7 +45,7 @@ void UIDocument::attachView(MulanGeo::Engine::EngineView* view) {
 
 void UIDocument::detachView() {
     if (m_view) {
-        m_view->clearCollector();
+        m_view->clearScene();
         m_view = nullptr;
     }
     m_scene.reset();

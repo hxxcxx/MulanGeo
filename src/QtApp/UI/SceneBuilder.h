@@ -25,9 +25,8 @@ class SceneBuilder {
 public:
     /// 从 Document 一次性构建 Scene
     static std::unique_ptr<MulanGeo::Engine::Scene> build(
-        const MulanGeo::Document::Document& doc);
+        const MulanGeo::Document::Document* doc);
 
-    /// 构建 pickId → EntityId 的映射表（供拾取后反查用）
     static std::unordered_map<uint32_t, MulanGeo::Document::EntityId> buildPickIdMap(
-        const MulanGeo::Document::Document& doc);
+        const MulanGeo::Document::Document* doc);
 };

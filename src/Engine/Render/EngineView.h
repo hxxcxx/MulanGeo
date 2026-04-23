@@ -24,6 +24,8 @@
 #include "../RHI/PipelineState.h"
 #include "../RHI/VertexLayout.h"
 #include "../Scene/Camera.h"
+#include "../Scene/Scene.h"
+#include "../Scene/CullVisitor.h"
 #include "../Interaction/InputEvent.h"
 #include "../Interaction/Operator.h"
 #include "../Interaction/CameraManipulator.h"
@@ -37,7 +39,6 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include <functional>
 
 namespace MulanGeo::Engine {
 
@@ -131,16 +132,13 @@ public:
     Camera&       camera()       { return m_camera; }
     const Camera& camera() const { return m_camera; }
 
-    // --- 场景收集 ---
+    // --- 场景 ---
 
-    /// 收集回调：每帧渲染前调用以填充 RenderQueue
-    using CollectCallback = std::function<void(const Camera&, RenderQueue&)>;
+    /// 设置渲染场景（接管每帧收集逻辑：updateWorldTransforms + CullVisitor）
+    void setScene(Scene* scene);
 
-    /// 设置收集回调（由 UIDocument::attachView 调用）
-    void setCollector(CollectCallback cb);
-
-    /// 清除收集回调
-    void clearCollector();
+    /// 清除场景引用
+    void clearScene();
 private:
     void loadShaders();
     void createPSOs();
@@ -174,7 +172,7 @@ private:
     // --- Renderer ---
     std::unique_ptr<SceneRenderer>      m_sceneRenderer;
     RenderQueue                         m_renderQueue;
-    CollectCallback                     m_collectCallback;
+    Scene*                              m_scene = nullptr;
 
     // --- 状态 ---
 

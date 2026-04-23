@@ -88,18 +88,18 @@ static void buildRecursive(BuildContext& ctx) {
 // SceneBuilder 公开接口
 // ============================================================
 
-std::unique_ptr<Eng::Scene> SceneBuilder::build(const Doc::Document& doc) {
+std::unique_ptr<Eng::Scene> SceneBuilder::build(const Doc::Document* doc) {
     auto scene = std::make_unique<Eng::Scene>();
 
-    BuildContext ctx{doc, *scene, {}};
+    BuildContext ctx{*doc, *scene, {}};
     buildRecursive(ctx);
 
     return scene;
 }
 
-std::unordered_map<uint32_t, Doc::EntityId> SceneBuilder::buildPickIdMap(const Doc::Document& doc) {
+std::unordered_map<uint32_t, Doc::EntityId> SceneBuilder::buildPickIdMap(const Doc::Document* doc) {
     std::unordered_map<uint32_t, Doc::EntityId> map;
-    doc.forEachEntity([&](const Doc::Entity& entity) {
+    doc->forEachEntity([&](const Doc::Entity& entity) {
         uint32_t pickId = static_cast<uint32_t>(entity.id().value);
         map[pickId] = entity.id();
     });

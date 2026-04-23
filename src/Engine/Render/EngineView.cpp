@@ -301,10 +301,19 @@ void EngineView::createUBOs() {
 void EngineView::renderFrame() {
     if (!m_initialized) return;
 
-    // 每帧重新收集（视锥体裁剪等需要每帧更新）
-    if (m_collectCallback) {
-        m_collectCallback(m_camera, m_renderQueue);
+    // 收集可见节点：增量更新世界变换 → 视锥裁剪
+    m_renderQueue.clear();
+    if (m_scene) {
+        m_scene->updateWorldTransforms();
+        auto frustum = m_camera.frustum();
+        CullVisitor cull(frustum, m_renderQueue);
+        m_scene->traverseVisible([&](SceneNode& node) {
+            cull.visit(node);
+        });
     }
+
+    // 排序：不透明按材质分组，半透明从远到近
+    m_renderQueue.sort(m_camera.eyePosition());
 
     m_device->beginFrame();
     auto* cmd = m_device->frameCommandList();
@@ -456,12 +465,12 @@ void EngineView::setOperator(std::unique_ptr<Operator> op) {
 // 场景收集回调
 // ============================================================
 
-void EngineView::setCollector(CollectCallback cb) {
-    m_collectCallback = std::move(cb);
+void EngineView::setScene(Scene* scene) {
+    m_scene = scene;
 }
 
-void EngineView::clearCollector() {
-    m_collectCallback = nullptr;
+void EngineView::clearScene() {
+    m_scene = nullptr;
     m_renderQueue.clear();
     if (m_sceneRenderer) m_sceneRenderer->clearCache();
 }
@@ -471,7 +480,7 @@ void EngineView::clearCollector() {
 // ============================================================
 
 void EngineView::cleanup() {
-    m_collectCallback = nullptr;
+    m_scene = nullptr;
     m_renderQueue.clear();
     m_sceneRenderer.reset();
 
