@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include <QWidget>
+#include <QStackedWidget>
 #include <QTabWidget>
 #include <unordered_map>
 
@@ -50,12 +50,9 @@ private slots:
     void onCurrentTabChanged(int index);
 
 private:
-    void showWelcomePage();
-    void hideWelcomePage();
-    void updateTabBarVisibility();
-
-    QTabWidget* m_tabWidget = nullptr;
-    QLabel*     m_welcomePage = nullptr;
+    QStackedWidget* m_stack     = nullptr;
+    QTabWidget*     m_tabWidget = nullptr;
+    QLabel*         m_welcomePage = nullptr;
 
     // DocWidget → UIDocument 的映射，管理 UIDocument 生命周期
     std::unordered_map<DocWidget*, UIDocument*> m_docs;

@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QTabBar>
 #include <QVBoxLayout>
+#include <QStackedWidget>
 
 //===================================================
 // DocumentArea
@@ -20,18 +21,33 @@ DocumentArea::DocumentArea(QWidget* parent) : QWidget(parent) {
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
 
+    m_stack = new QStackedWidget(this);
+
+    // Page 0: 欢迎页
+    m_welcomePage = new QLabel(
+        "<h2 style='color:#888;'>MulanGeo</h2>"
+        "<p style='color:#aaa;'>Open a CAD file to begin: File → Open, or drag & drop</p>",
+        this);
+    m_welcomePage->setAlignment(Qt::AlignCenter);
+    m_welcomePage->setStyleSheet("background-color: #373a45;");
+    m_stack->addWidget(m_welcomePage);
+
+    // Page 1: 文档标签区
     m_tabWidget = new QTabWidget(this);
     m_tabWidget->setTabsClosable(true);
     m_tabWidget->setMovable(true);
     m_tabWidget->setDocumentMode(true);
+    m_tabWidget->tabBar()->hide();
 
     connect(m_tabWidget, &QTabWidget::tabCloseRequested,
             this, &DocumentArea::onTabCloseRequested);
     connect(m_tabWidget, &QTabWidget::currentChanged,
             this, &DocumentArea::onCurrentTabChanged);
 
-    layout->addWidget(m_tabWidget);
-    showWelcomePage();
+    m_stack->addWidget(m_tabWidget);
+    m_stack->setCurrentIndex(0);
+
+    layout->addWidget(m_stack);
 }
 
 DocumentArea::~DocumentArea() {
@@ -42,15 +58,14 @@ DocumentArea::~DocumentArea() {
 }
 
 DocWidget* DocumentArea::addDocument(UIDocument* uiDoc, const QString& title) {
-    hideWelcomePage();
-
     auto* docWidget = new DocWidget(this);
     m_docs[docWidget] = uiDoc;
     docWidget->setUIDocument(uiDoc);
 
     int idx = m_tabWidget->addTab(docWidget, title);
     m_tabWidget->setCurrentIndex(idx);
-    updateTabBarVisibility();
+    m_tabWidget->tabBar()->show();
+    m_stack->setCurrentIndex(1);  // 切到标签区
 
     emit documentOpened(title);
     return docWidget;
@@ -70,11 +85,11 @@ void DocumentArea::closeDocument(int index) {
     m_tabWidget->removeTab(index);
     docWidget->deleteLater();
 
-    updateTabBarVisibility();
     emit documentClosed();
 
     if (m_tabWidget->count() == 0) {
-        showWelcomePage();
+        m_tabWidget->tabBar()->hide();
+        m_stack->setCurrentIndex(0);  // 切回欢迎页
     }
 }
 
@@ -85,37 +100,6 @@ DocWidget* DocumentArea::currentDocWidget() const {
 
 int DocumentArea::documentCount() const {
     return static_cast<int>(m_docs.size());
-}
-
-void DocumentArea::showWelcomePage() {
-    if (m_welcomePage) return;
-
-    m_welcomePage = new QLabel(
-        "<h2 style='color:#888;'>MulanGeo</h2>"
-        "<p style='color:#aaa;'>Open a CAD file to begin: File → Open, or drag & drop</p>",
-        this);
-    m_welcomePage->setAlignment(Qt::AlignCenter);
-    m_welcomePage->setStyleSheet("background-color: #373a45;");
-    m_tabWidget->addTab(m_welcomePage, tr("Welcome"));
-    m_tabWidget->tabBar()->tabButton(0, QTabBar::RightSide)->hide();
-
-    emit currentDocumentChanged({});
-}
-
-void DocumentArea::hideWelcomePage() {
-    if (!m_welcomePage) return;
-
-    int idx = m_tabWidget->indexOf(m_welcomePage);
-    if (idx >= 0) {
-        m_tabWidget->removeTab(idx);
-    }
-    m_welcomePage->deleteLater();
-    m_welcomePage = nullptr;
-}
-
-void DocumentArea::updateTabBarVisibility() {
-    // 有文档时显示标签栏，仅有欢迎页时隐藏
-    m_tabWidget->tabBar()->setVisible(!m_docs.empty());
 }
 
 void DocumentArea::onTabCloseRequested(int index) {
@@ -135,3 +119,6 @@ void DocumentArea::onCurrentTabChanged(int index) {
     auto it = m_docs.find(docWidget);
     if (it != m_docs.end()) {
         QString name = QString::fromStdString(it->second->document().displayName());
+        emit currentDocumentChanged(name);
+    }
+}
