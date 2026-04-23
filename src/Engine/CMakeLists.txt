@@ -61,6 +61,8 @@ add_library(Engine STATIC
     RHI/OpenGL/GLPipelineState.cpp
     RHI/OpenGL/GLBuffer.cpp
     RHI/OpenGL/GLCommandList.cpp
+    RHI/OpenGL/GLRenderTarget.cpp
+    RHI/OpenGL/GLTexture.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...

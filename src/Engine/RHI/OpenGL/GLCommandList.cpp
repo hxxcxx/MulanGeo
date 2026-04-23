@@ -10,20 +10,29 @@
 #include "GLPipelineState.h"
 #include "../Buffer.h"
 #include "../RenderTypes.h"
+#include "../VertexFormat.h"
 #include <cstdio>
 #include <cstring>
 
 namespace MulanGeo::Engine {
 
-GLCommandList::GLCommandList() = default;
+GLCommandList::GLCommandList() {
+    glGenVertexArrays(1, &m_vao);
+}
 
-GLCommandList::~GLCommandList() = default;
+GLCommandList::~GLCommandList() {
+    if (m_vao) {
+        glDeleteVertexArrays(1, &m_vao);
+        m_vao = 0;
+    }
+}
 
 void GLCommandList::begin() {
     // OpenGL 立即模式，begin/end 不做实质工作
     m_pipelineStateApplied = false;
+    m_vertexLayoutDirty    = true;
     m_viewportDirty = true;
-    m_scissorDirty = true;
+    m_scissorDirty  = true;
 }
 
 void GLCommandList::end() {
@@ -33,8 +42,9 @@ void GLCommandList::end() {
 void GLCommandList::setPipelineState(PipelineState* pso) {
     if (m_currentPipeline == pso) return;
 
-    m_currentPipeline = pso;
-    m_pipelineStateApplied = false;  // 标记需要应用
+    m_currentPipeline      = pso;
+    m_pipelineStateApplied = false;
+    m_vertexLayoutDirty    = true;  // 新 PSO 可能有不同的 VertexLayout
 }
 
 void GLCommandList::setViewport(const Viewport& vp) {
@@ -67,20 +77,24 @@ void GLCommandList::setVertexBuffer(uint32_t slot, Buffer* buffer,
         return;  // 无变化
     }
 
-    m_vertexBuffers[slot] = buffer;
+    m_vertexBuffers[slot]       = buffer;
     m_vertexBufferOffsets[slot] = offset;
 
     if (slot >= m_vertexBufferCount) {
         m_vertexBufferCount = slot + 1;
     }
 
-    // OpenGL 立即执行
+    m_vertexLayoutDirty = true;  // VBO 更换，需重新绑定属性指针
+
+    // 立即绑定到 VAO 中（VAO 内保存 VBO 绑定信息）
+    glBindVertexArray(m_vao);
     if (buffer) {
         auto* glBuf = static_cast<GLBuffer*>(buffer);
         glBindBuffer(GL_ARRAY_BUFFER, glBuf->handle());
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+    glBindVertexArray(0);
 }
 
 void GLCommandList::setVertexBuffers(uint32_t startSlot, uint32_t count,
@@ -99,34 +113,41 @@ void GLCommandList::setIndexBuffer(Buffer* buffer, uint32_t offset,
         return;  // 无变化
     }
 
-    m_indexBuffer = buffer;
+    m_indexBuffer       = buffer;
     m_indexBufferOffset = offset;
-    m_indexType = type;
+    m_indexType         = type;
 
-    // OpenGL 立即执行
+    // IBO 绑定必须在 VAO 绑定中才能被 VAO 记录
+    glBindVertexArray(m_vao);
     if (buffer) {
         auto* glBuf = static_cast<GLBuffer*>(buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glBuf->handle());
     } else {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
+    glBindVertexArray(0);
 }
 
 void GLCommandList::draw(const DrawAttribs& attribs) {
-    // 应用管线状态
     applyPipelineState();
 
-    // 应用视口
+    // 绑定 VAO 并更新顶点属性指针
+    glBindVertexArray(m_vao);
+    setupVertexAttributes();
+
     if (m_viewportDirty) {
         glViewport(static_cast<GLint>(m_viewport.x),
                    static_cast<GLint>(m_viewport.y),
                    static_cast<GLint>(m_viewport.width),
                    static_cast<GLint>(m_viewport.height));
+#ifdef __EMSCRIPTEN__
+        glDepthRangef(m_viewport.minDepth, m_viewport.maxDepth);
+#else
         glDepthRange(m_viewport.minDepth, m_viewport.maxDepth);
+#endif
         m_viewportDirty = false;
     }
 
-    // 应用裁剪矩形
     if (m_scissorDirty) {
         glScissor(static_cast<GLint>(m_scissorRect.x),
                   static_cast<GLint>(m_scissorRect.y),
@@ -135,8 +156,14 @@ void GLCommandList::draw(const DrawAttribs& attribs) {
         m_scissorDirty = false;
     }
 
-    // 执行绘制
-    glDrawArrays(GL_TRIANGLES, attribs.startVertex, attribs.vertexCount);
+    GLenum topology = GL_TRIANGLES;
+    if (m_currentPipeline) {
+        auto* glPso = static_cast<GLPipelineState*>(m_currentPipeline);
+        topology = glPso->glTopology();
+    }
+    glDrawArrays(topology, attribs.startVertex, attribs.vertexCount);
+
+    glBindVertexArray(0);
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
@@ -145,20 +172,25 @@ void GLCommandList::draw(const DrawAttribs& attribs) {
 }
 
 void GLCommandList::drawIndexed(const DrawIndexedAttribs& attribs) {
-    // 应用管线状态
     applyPipelineState();
 
-    // 应用视口
+    // 绑定 VAO 并更新顶点属性指针
+    glBindVertexArray(m_vao);
+    setupVertexAttributes();
+
     if (m_viewportDirty) {
         glViewport(static_cast<GLint>(m_viewport.x),
                    static_cast<GLint>(m_viewport.y),
                    static_cast<GLint>(m_viewport.width),
                    static_cast<GLint>(m_viewport.height));
+#ifdef __EMSCRIPTEN__
+        glDepthRangef(m_viewport.minDepth, m_viewport.maxDepth);
+#else
         glDepthRange(m_viewport.minDepth, m_viewport.maxDepth);
+#endif
         m_viewportDirty = false;
     }
 
-    // 应用裁剪矩形
     if (m_scissorDirty) {
         glScissor(static_cast<GLint>(m_scissorRect.x),
                   static_cast<GLint>(m_scissorRect.y),
@@ -167,13 +199,19 @@ void GLCommandList::drawIndexed(const DrawIndexedAttribs& attribs) {
         m_scissorDirty = false;
     }
 
-    // 执行索引绘制
+    GLenum topology = GL_TRIANGLES;
+    if (m_currentPipeline) {
+        auto* glPso = static_cast<GLPipelineState*>(m_currentPipeline);
+        topology = glPso->glTopology();
+    }
     GLenum indexFormat = indexTypeToGLFormat(m_indexType);
-    glDrawElements(GL_TRIANGLES, 
-                   static_cast<GLsizei>(attribs.indexCount), 
+    glDrawElements(topology,
+                   static_cast<GLsizei>(attribs.indexCount),
                    indexFormat,
                    reinterpret_cast<const void*>(
                        static_cast<uintptr_t>(m_indexBufferOffset + attribs.startIndex)));
+
+    glBindVertexArray(0);
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
@@ -228,6 +266,79 @@ void GLCommandList::clearStencil(uint8_t stencil) {
 Buffer* GLCommandList::currentVertexBuffer(uint32_t slot) const {
     if (slot >= MAX_VERTEX_BUFFERS) return nullptr;
     return m_vertexBuffers[slot];
+}
+
+GLCommandList::GLAttribType GLCommandList::vertexFormatToGL(VertexFormat fmt) {
+    const auto& info = getVertexFormatInfo(fmt);
+    GLenum type = GL_FLOAT;
+    if (info.isFloat) {
+        switch (info.bytesPerComponent) {
+        case 2:  type = GL_HALF_FLOAT; break;
+        case 4:  type = GL_FLOAT;      break;
+        default: type = GL_FLOAT;      break;
+        }
+    } else if (info.isInteger) {
+        switch (info.bytesPerComponent) {
+        case 1:  type = info.isNormalized ? GL_UNSIGNED_BYTE  : GL_UNSIGNED_BYTE;  break;
+        case 2:  type = GL_UNSIGNED_SHORT; break;
+        case 4:  type = GL_UNSIGNED_INT;   break;
+        default: type = GL_UNSIGNED_INT;   break;
+        }
+    } else if (info.isNormalized) {
+        // SNorm / UNorm
+        switch (info.bytesPerComponent) {
+        case 1:  type = info.format == VertexFormat::Byte4N ? GL_BYTE : GL_UNSIGNED_BYTE; break;
+        case 2:  type = GL_UNSIGNED_SHORT; break;
+        default: type = GL_FLOAT;          break;
+        }
+    }
+    return { type,
+             static_cast<GLint>(info.componentCount),
+             static_cast<GLboolean>(info.isNormalized ? GL_TRUE : GL_FALSE),
+             info.isInteger && !info.isNormalized };
+}
+
+void GLCommandList::setupVertexAttributes() {
+    if (!m_vertexLayoutDirty) return;
+    if (!m_currentPipeline)   return;
+
+    const auto& layout = m_currentPipeline->desc().vertexLayout;
+    if (layout.empty())       return;
+
+    GLsizei stride = static_cast<GLsizei>(layout.stride());
+
+    // 先禁用所有属性，再按布局重新开启
+    for (GLuint i = 0; i < 16; ++i)
+        glDisableVertexAttribArray(i);
+
+    for (uint8_t i = 0; i < layout.attrCount(); ++i) {
+        const auto& attr = layout[i];
+        GLuint location  = static_cast<GLuint>(i);  // location = attribute index
+
+        // 绑定该 slot 对应的 VBO
+        uint8_t slot = attr.bufferSlot;
+        if (slot < m_vertexBufferCount && m_vertexBuffers[slot]) {
+            auto* glBuf = static_cast<GLBuffer*>(m_vertexBuffers[slot]);
+            glBindBuffer(GL_ARRAY_BUFFER, glBuf->handle());
+        } else {
+            continue;  // 该 slot 无 VBO，跳过
+        }
+
+        auto glType = vertexFormatToGL(attr.format);
+        const void* offsetPtr = reinterpret_cast<const void*>(
+            static_cast<uintptr_t>(attr.offset + m_vertexBufferOffsets[slot]));
+
+        glEnableVertexAttribArray(location);
+        if (glType.isInteger) {
+            glVertexAttribIPointer(location, glType.components, glType.type,
+                                   stride, offsetPtr);
+        } else {
+            glVertexAttribPointer(location, glType.components, glType.type,
+                                  glType.normalized, stride, offsetPtr);
+        }
+    }
+
+    m_vertexLayoutDirty = false;
 }
 
 void GLCommandList::applyPipelineState() {

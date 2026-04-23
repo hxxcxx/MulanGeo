@@ -140,7 +140,8 @@ private:
     GPUDeviceCapabilities m_caps;
 
     // 帧命令列表缓存（直接成员，避免堆指针被污染）
-    GLCommandList m_frameCommandList;
+    //GLCommandList m_frameCommandList;
+    std::unique_ptr<GLCommandList> m_frameCommandList;
 };
 
 } // namespace MulanGeo::Engine

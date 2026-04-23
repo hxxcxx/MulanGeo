@@ -11,6 +11,8 @@
 #include "GLPipelineState.h"
 #include "GLBuffer.h"
 #include "GLCommandList.h"
+#include "GLRenderTarget.h"
+#include "GLTexture.h"
 
 #include <cstdio>
 #include <cstring>
@@ -49,19 +51,22 @@ void GLDevice::init(const CreateInfo& ci) {
 #endif
 
     // 加载 OpenGL 函数指针 (GLAD)
+    // Emscripten: WebGL 函数已静态链接，无需 GLAD 动态加载
+#ifndef __EMSCRIPTEN__
     if (!gladLoadGL()) {
         std::fprintf(stderr, "[GLDevice] Failed to load OpenGL via GLAD\n");
         shutdown();
         return;
     }
+#endif
 
     std::fprintf(stdout, "[GLDevice] OpenGL %s | %s | %s\n",
                  reinterpret_cast<const char*>(glGetString(GL_VERSION)),
                  reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
                  reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
 
-    // Debug output（OpenGL 4.3+）
-#ifdef _DEBUG
+    // Debug output（OpenGL 4.3+，WebGL/Emscripten 不支持）
+#if defined(_DEBUG) && !defined(__EMSCRIPTEN__)
     if (ci.enableValidation && glDebugMessageCallback) {
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -91,6 +96,7 @@ void GLDevice::init(const CreateInfo& ci) {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    m_frameCommandList = std::make_unique<GLCommandList>();
     m_initialized = true;
     std::fprintf(stdout, "[GLDevice] Initialization complete\n");
 }
@@ -214,9 +220,14 @@ ResourcePtr<Buffer> GLDevice::createBuffer(const BufferDesc& desc) {
     return nullptr;
 }
 
-ResourcePtr<Texture> GLDevice::createTexture(const TextureDesc& /*desc*/) {
-    // TODO: return new GLTexture(desc);
-    std::fprintf(stderr, "[GLDevice] createTexture: not yet implemented\n");
+Texture* GLDevice::createTexture(const TextureDesc& desc) {
+    auto texture = new GLTexture(desc);
+    if (texture && texture->isValid()) {
+        return texture;
+    }
+    delete texture;
+    std::fprintf(stderr, "[GLDevice] Failed to create texture: %s\n",
+                 std::string(desc.name).c_str());
     return nullptr;
 }
 
@@ -242,9 +253,12 @@ ResourcePtr<PipelineState> GLDevice::createPipelineState(const GraphicsPipelineD
     return nullptr;
 }
 
-ResourcePtr<CommandList> GLDevice::createCommandList() {
-    // TODO: return new GLCommandList();
-    std::fprintf(stderr, "[GLDevice] createCommandList: not yet implemented\n");
+CommandList* GLDevice::createCommandList() {
+    auto cmdList = new GLCommandList();
+    if (cmdList)
+        return cmdList;
+    delete cmdList;
+    std::fprintf(stderr, "[GLDevice] Failed to create command list\n");
     return nullptr;
 }
 
@@ -266,9 +280,14 @@ ResourcePtr<Fence> GLDevice::createFence(uint64_t /*initialValue*/) {
     return nullptr;
 }
 
-ResourcePtr<RenderTarget> GLDevice::createRenderTarget(const RenderTargetDesc& /*desc*/) {
-    // TODO: return new GLRenderTarget(desc);
-    std::fprintf(stderr, "[GLDevice] createRenderTarget: not yet implemented\n");
+RenderTarget* GLDevice::createRenderTarget(const RenderTargetDesc& desc) {
+    auto rt = new GLRenderTarget(desc);
+    if (rt && rt->isValid()) {
+        return rt;
+    }
+    delete rt;
+    std::fprintf(stderr, "[GLDevice] Failed to create render target (%ux%u)\n",
+                 desc.width, desc.height);
     return nullptr;
 }
 
@@ -325,7 +344,7 @@ CommandList* GLDevice::frameCommandList() {
     }
 
     // m_frameCommandList 是直接成员，地址固定，无堆指针风险
-    return &m_frameCommandList;
+    return m_frameCommandList.get();
 }
 
 void GLDevice::submitAndPresent(SwapChain* /*swapchain*/) {
@@ -352,10 +371,12 @@ void GLDevice::bindUniformBuffers(CommandList* /*cmd*/, PipelineState* /*pso*/,
     // OpenGL: 直接 glBindBufferRange 到 UBO binding points
     for (uint32_t i = 0; i < count; ++i) {
         if (!binds[i].buffer) continue;
-        // TODO: 获取 GLuint handle from GLBuffer
-        // GLuint glBuf = static_cast<GLBuffer*>(binds[i].buffer)->glHandle();
-        // glBindBufferRange(GL_UNIFORM_BUFFER, binds[i].binding,
-        //                   glBuf, binds[i].offset, binds[i].size);
+        GLuint glBuf = static_cast<GLBuffer*>(binds[i].buffer)->handle();
+        glBindBufferRange(GL_UNIFORM_BUFFER,
+                          static_cast<GLuint>(binds[i].binding),
+                          glBuf,
+                          static_cast<GLintptr>(binds[i].offset),
+                          static_cast<GLsizeiptr>(binds[i].size));
     }
 }
 

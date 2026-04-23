@@ -135,8 +135,15 @@ private:
     /// 应用当前管线状态到 GL
     void applyPipelineState();
 
+    /// 按 VertexLayout 重新设置 glVertexAttribPointer
+    void setupVertexAttributes();
+
     /// 转换 IndexType 到 GL 格式
     static GLenum indexTypeToGLFormat(IndexType type);
+
+    /// 将 VertexFormat 映射到 GL 类型信息
+    struct GLAttribType { GLenum type; GLint components; GLboolean normalized; bool isInteger; };
+    static GLAttribType vertexFormatToGL(VertexFormat fmt);
 
     // --- 成员变量 ---
 
@@ -161,6 +168,10 @@ private:
 
     // 记录是否已应用状态（避免冗余的 GL 调用）
     bool               m_pipelineStateApplied = false;
+
+    // VAO — OpenGL Core Profile 必须绑定 VAO 才能 draw
+    GLuint             m_vao = 0;
+    bool               m_vertexLayoutDirty = true;  // VBO/PSO 变化时重新设置属性指针
 };
 
 } // namespace MulanGeo::Engine
