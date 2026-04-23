@@ -1,20 +1,26 @@
 /**
  * @file TextureLoader.h
- * @brief 纹理加载器 — 从文件加载图片数据
+ * @brief 纹理加载器 — 基于 Core::Image 的 RHI 纹理桥接层
  * @author hxxcxx
  * @date 2026-04-23
+ *
+ * 职责：
+ *  - 将 Core::Image (CPU 像素) 转换为 LoadedTexture (RHI 格式)
+ *  - 提供 sRGB → Linear 转换
+ *  - 提供 RHI TextureFormat 映射
+ *
+ * 实际图片加载由 Core::Image::load() 完成
  */
 
 #pragma once
 
 #include "../RHI/Texture.h"
-#include "../RHI/Device.h"
+#include <MulanGeo/Core/Image/Image.h>
 
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
-#include <unordered_map>
 
 namespace MulanGeo::Engine {
 
@@ -23,25 +29,25 @@ namespace MulanGeo::Engine {
 // ============================================================
 
 struct TextureLoadOptions {
-    bool generateMips    = true;   // 是否生成 mipmap
-    bool srgbToLinear   = false;  // 是否做 sRGB → Linear 转换
-    TextureFormat format = TextureFormat::RGBA8_UNorm;
+    bool           generateMips  = true;
+    bool           srgbToLinear  = false;
+    TextureFormat  format        = TextureFormat::RGBA8_UNorm;
 };
 
 // ============================================================
-// 纹理加载结果
+// 纹理加载结果 — RHI 友好的像素缓冲
 // ============================================================
 
 struct LoadedTexture {
-    int                  width      = 0;
-    int                  height     = 0;
-    int                  channels   = 0;
-    std::vector<uint8_t> pixels;    // 原始像素数据
-    TextureFormat        format     = TextureFormat::RGBA8_UNorm;
+    uint32_t             width    = 0;
+    uint32_t             height   = 0;
+    uint32_t             channels = 0;
+    std::vector<uint8_t> pixels;
+    TextureFormat        format   = TextureFormat::RGBA8_UNorm;
 };
 
 // ============================================================
-// 纹理加载器 — 单例或工具类
+// 纹理加载器 — 无状态工具类
 // ============================================================
 
 class TextureLoader {
@@ -49,25 +55,33 @@ public:
     TextureLoader() = default;
     ~TextureLoader() = default;
 
-    // 禁用拷贝
     TextureLoader(const TextureLoader&) = delete;
     TextureLoader& operator=(const TextureLoader&) = delete;
 
-    /// 从文件加载纹理数据（使用 stb_image）
-    /// 返回空 vector 表示加载失败
+    /// 从文件加载（委托 Core::Image::load + 转换）
     LoadedTexture loadFromFile(const std::string& path,
                                const TextureLoadOptions& options = {}) const;
 
-    /// 从内存加载纹理数据
-    LoadedTexture loadFromMemory(const uint8_t* data,
-                                  size_t size,
-                                  const TextureLoadOptions& options = {}) const;
+    /// 从 Core::Image 直接转换
+    LoadedTexture loadFromImage(const std::shared_ptr<Core::Image>& image,
+                                const TextureLoadOptions& options = {}) const;
+
+    /// 从内存加载
+    LoadedTexture loadFromMemory(const uint8_t* data, size_t size,
+                                 const TextureLoadOptions& options = {}) const;
 
     /// 检查文件是否为支持的图片格式
     static bool isSupportedFormat(const std::string& path);
 
-    /// 从文件路径推测格式
-    static TextureFormat guessFormat(const std::string& path, int channels);
+    /// 从 PixelFormat + 文件扩展名 推测 RHI TextureFormat
+    static TextureFormat guessFormat(const std::string& path, Core::PixelFormat pixelFmt);
+
+private:
+    /// Core::PixelFormat → RHI TextureFormat
+    static TextureFormat toRHITextureFormat(Core::PixelFormat pixelFmt, bool isSrgb);
+
+    /// sRGB → Linear 就地转换
+    static void convertSRGBToLinear(std::vector<uint8_t>& pixels);
 };
 
 } // namespace MulanGeo::Engine

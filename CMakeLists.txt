@@ -65,6 +65,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 add_subdirectory(3rdparty/SARibbon)
 
 # ── Subdirectories ──
+add_subdirectory(src/Core)
 add_subdirectory(src/Engine)
 add_subdirectory(src/Document)
 add_subdirectory(src/QtApp)

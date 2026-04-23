@@ -8,7 +8,6 @@ add_library(Document STATIC
     OCCTImporter.cpp
     ImporterFactory.cpp
     DocumentManager.cpp
-    ImageLoader.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Document/...
@@ -46,11 +45,3 @@ target_compile_definitions(Document PRIVATE
     BUILDING_DOCUMENT
     $<$<CONFIG:Debug>:_DEBUG>
 )
-
-# --- stb (图像加载) ---
-find_path(STB_INCLUDE_DIRS "stb_image.h")
-if(STB_INCLUDE_DIRS)
-    target_include_directories(Document PRIVATE ${STB_INCLUDE_DIRS})
-else()
-    message(WARNING "stb headers not found — ImageLoader will fail to compile")
-endif()

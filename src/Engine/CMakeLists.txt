@@ -93,6 +93,7 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
 target_link_libraries(Engine PUBLIC
+    Core
     glm::glm
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
