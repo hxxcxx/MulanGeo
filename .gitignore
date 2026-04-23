@@ -40,3 +40,5 @@ CTestTestfile.cmake
 # OS
 .DS_Store
 Thumbs.db
+
+other/
