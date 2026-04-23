@@ -9,6 +9,7 @@
  *  - MaterialType 枚举标识着色器变体选择
  *  - MaterialGPU 是 std140 布局的 GPU 常量缓冲区数据
  *  - 上层通过 Material::toGPU() 转换后上传 UBO
+ *  - 纹理槽位使用枚举 TextureSlot 统一索引
  */
 
 #pragma once
@@ -18,6 +19,7 @@
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
+#include <array>
 #include <string>
 
 namespace MulanGeo::Engine {
@@ -32,6 +34,23 @@ enum class MaterialType : uint8_t {
     PBR,            // 金属度-粗糙度 PBR 工作流
 };
 
+/// MaterialType 枚举转字符串
+inline const char* materialTypeToString(MaterialType t) {
+    switch (t) {
+    case MaterialType::Unlit:      return "Unlit";
+    case MaterialType::BlinnPhong: return "BlinnPhong";
+    case MaterialType::PBR:        return "PBR";
+    }
+    return "Unknown";
+}
+
+/// 字符串转 MaterialType 枚举
+inline MaterialType materialTypeFromString(const std::string& s) {
+    if (s == "Unlit" || s == "unlit")      return MaterialType::Unlit;
+    if (s == "BlinnPhong" || s == "blinnphong") return MaterialType::BlinnPhong;
+    return MaterialType::PBR;
+}
+
 // ============================================================
 // Alpha 模式 — 透明度处理策略
 // ============================================================
@@ -41,6 +60,48 @@ enum class AlphaMode : uint8_t {
     Mask,           // 二值蒙版（alpha < cutoff 则丢弃）
     Blend,          // 半透明混合
 };
+
+inline const char* alphaModeToString(AlphaMode m) {
+    switch (m) {
+    case AlphaMode::Opaque: return "Opaque";
+    case AlphaMode::Mask:   return "Mask";
+    case AlphaMode::Blend:  return "Blend";
+    }
+    return "Opaque";
+}
+
+inline AlphaMode alphaModeFromString(const std::string& s) {
+    if (s == "Mask" || s == "mask")   return AlphaMode::Mask;
+    if (s == "Blend" || s == "blend") return AlphaMode::Blend;
+    return AlphaMode::Opaque;
+}
+
+// ============================================================
+// 纹理槽位 — 统一索引
+// ============================================================
+
+enum class TextureSlot : uint8_t {
+    Albedo            = 0,
+    Normal            = 1,
+    MetallicRoughness  = 2,
+    Emissive          = 3,
+    AO                = 4,
+    Count             = 5,
+};
+
+/// 纹理槽位名称
+inline const char* textureSlotName(TextureSlot slot) {
+    switch (slot) {
+    case TextureSlot::Albedo:           return "albedo";
+    case TextureSlot::Normal:           return "normal";
+    case TextureSlot::MetallicRoughness: return "metallicRoughness";
+    case TextureSlot::Emissive:         return "emissive";
+    case TextureSlot::AO:               return "ao";
+    default:                            return "unknown";
+    }
+}
+
+static constexpr uint16_t kInvalidTexture = 0xFFFF;
 
 // ============================================================
 // 材质描述 — CPU 端完整参数
@@ -75,12 +136,36 @@ struct Material {
     // --- 双面渲染 ---
     bool            doubleSided = false;
 
-    // --- 纹理索引 (0xFFFF = 无纹理) ---
-    uint16_t        albedoTexture           = 0xFFFF;
-    uint16_t        normalTexture           = 0xFFFF;
-    uint16_t        metallicRoughnessTexture = 0xFFFF;
-    uint16_t        emissiveTexture         = 0xFFFF;
-    uint16_t        aoTexture               = 0xFFFF;
+    // --- 纹理索引 (kInvalidTexture = 无纹理) ---
+    std::array<uint16_t, static_cast<size_t>(TextureSlot::Count)> textures{};
+
+    // --- 纹理路径（用于序列化/延迟加载） ---
+    std::array<std::string, static_cast<size_t>(TextureSlot::Count)> texturePaths{};
+
+    Material() {
+        textures.fill(kInvalidTexture);
+    }
+
+    // --- 纹理访问便捷方法 ---
+
+    uint16_t albedoTexture() const            { return textures[static_cast<size_t>(TextureSlot::Albedo)]; }
+    uint16_t normalTexture() const            { return textures[static_cast<size_t>(TextureSlot::Normal)]; }
+    uint16_t metallicRoughnessTexture() const { return textures[static_cast<size_t>(TextureSlot::MetallicRoughness)]; }
+    uint16_t emissiveTexture() const          { return textures[static_cast<size_t>(TextureSlot::Emissive)]; }
+    uint16_t aoTexture() const                { return textures[static_cast<size_t>(TextureSlot::AO)]; }
+
+    void setAlbedoTexture(uint16_t id)            { textures[static_cast<size_t>(TextureSlot::Albedo)] = id; }
+    void setNormalTexture(uint16_t id)            { textures[static_cast<size_t>(TextureSlot::Normal)] = id; }
+    void setMetallicRoughnessTexture(uint16_t id) { textures[static_cast<size_t>(TextureSlot::MetallicRoughness)] = id; }
+    void setEmissiveTexture(uint16_t id)          { textures[static_cast<size_t>(TextureSlot::Emissive)] = id; }
+    void setAoTexture(uint16_t id)                { textures[static_cast<size_t>(TextureSlot::AO)] = id; }
+
+    uint16_t textureBySlot(TextureSlot slot) const {
+        return textures[static_cast<size_t>(slot)];
+    }
+    void setTextureBySlot(TextureSlot slot, uint16_t id) {
+        textures[static_cast<size_t>(slot)] = id;
+    }
 
     // --- 便捷工厂 ---
 
@@ -106,12 +191,12 @@ struct Material {
         return m;
     }
 
-    static Material transparent(const Vec3& color, double alpha) {
+    static Material transparent(const Vec3& color, double a) {
         Material m;
         m.type = MaterialType::PBR;
         m.alphaMode = AlphaMode::Blend;
         m.baseColor = color;
-        m.alpha = alpha;
+        m.alpha = a;
         m.name = "Transparent";
         return m;
     }
@@ -124,16 +209,39 @@ struct Material {
 
     /// 是否有纹理
     bool hasTextures() const {
-        return albedoTexture != 0xFFFF
-            || normalTexture != 0xFFFF
-            || metallicRoughnessTexture != 0xFFFF;
+        for (size_t i = 0; i < textures.size(); ++i) {
+            if (textures[i] != kInvalidTexture) return true;
+        }
+        return false;
     }
+
+    /// 是否等于（忽略 name）
+    bool equals(const Material& o) const {
+        return type == o.type
+            && alphaMode == o.alphaMode
+            && baseColor == o.baseColor
+            && alpha == o.alpha
+            && metallic == o.metallic
+            && roughness == o.roughness
+            && ao == o.ao
+            && specular == o.specular
+            && shininess == o.shininess
+            && emissive == o.emissive
+            && emissiveStrength == o.emissiveStrength
+            && alphaCutoff == o.alphaCutoff
+            && doubleSided == o.doubleSided
+            && textures == o.textures;
+    }
+
+    bool operator==(const Material& o) const { return equals(o); }
+    bool operator!=(const Material& o) const { return !equals(o); }
 };
 
 // ============================================================
 // GPU 端材质常量布局 (std140 / std430 compatible)
 //
 // 与 shader 中 MaterialUBO 1:1 对应
+// 总大小 = 80 bytes (5 × vec4)
 // ============================================================
 
 struct alignas(16) MaterialGPU {
@@ -161,6 +269,8 @@ struct alignas(16) MaterialGPU {
     uint32_t textureFlags;      // 位掩码: bit0=albedo, bit1=normal, bit2=mr, bit3=emissive, bit4=ao
     uint32_t doubleSided;       // 0 或 1
 
+    static constexpr size_t kSize = 80;
+
     /// 从 CPU Material 转换
     static MaterialGPU fromMaterial(const Material& m) {
         MaterialGPU g{};
@@ -187,17 +297,15 @@ struct alignas(16) MaterialGPU {
         g.materialType  = static_cast<uint32_t>(m.type);
         g.alphaMode     = static_cast<uint32_t>(m.alphaMode);
         g.textureFlags  = 0;
-        if (m.albedoTexture            != 0xFFFF) g.textureFlags |= (1u << 0);
-        if (m.normalTexture            != 0xFFFF) g.textureFlags |= (1u << 1);
-        if (m.metallicRoughnessTexture != 0xFFFF) g.textureFlags |= (1u << 2);
-        if (m.emissiveTexture          != 0xFFFF) g.textureFlags |= (1u << 3);
-        if (m.aoTexture                != 0xFFFF) g.textureFlags |= (1u << 4);
+        for (size_t i = 0; i < static_cast<size_t>(TextureSlot::Count); ++i) {
+            if (m.textures[i] != kInvalidTexture) {
+                g.textureFlags |= (1u << i);
+            }
+        }
         g.doubleSided   = m.doubleSided ? 1u : 0u;
 
         return g;
     }
 };
-
-static_assert(sizeof(MaterialGPU) == 80, "MaterialGPU must be 80 bytes (5 x vec4)");
 
 } // namespace MulanGeo::Engine

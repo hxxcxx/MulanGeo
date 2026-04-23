@@ -11,6 +11,12 @@ add_library(Engine STATIC
     Render/GeometryCache.cpp
     Render/SceneRenderer.cpp
     Render/EngineView.cpp
+    Render/TextureLoader.cpp
+    Render/TextureCache.cpp
+    Render/MaterialCache.cpp
+    Render/MaterialInstance.cpp
+    Render/MaterialSerializer.cpp
+    Render/MaterialLibrary.cpp
     # Vulkan backend
     RHI/Vulkan/VKBuffer.cpp
     RHI/Vulkan/VKTexture.cpp
@@ -83,12 +89,16 @@ find_package(Vulkan REQUIRED)
 # VMA (vulkan-memory-allocator)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
+# nlohmann-json
+find_package(nlohmann_json CONFIG REQUIRED)
+
 target_link_libraries(Engine PUBLIC
     glm::glm
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
     OpenGL::GL
     glad::glad
+    nlohmann_json::nlohmann_json
     d3d12
     d3d11
     dxgi
