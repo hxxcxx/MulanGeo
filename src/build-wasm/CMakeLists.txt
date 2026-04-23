@@ -78,11 +78,6 @@ target_compile_definitions(MulanGeoWasm PRIVATE
 )
 
 # ── Emscripten 链接选项 ──
-# -sUSE_WEBGL2=1      : 启用 WebGL 2（对应 OpenGL ES 3.0 / GLAD 替代）
-# -sFULL_ES3=1        : 暴露完整 OpenGL ES 3 符号
-# -sALLOW_MEMORY_GROWTH=1 : 允许堆自动增长
-# -sEXPORTED_RUNTIME_METHODS : 导出运行时函数供 JS 调用
-# --shell-file        : 使用自定义 HTML 模板（如果存在）
 set(EMSCRIPTEN_LINK_FLAGS
     "-sUSE_WEBGL2=1"
     "-sFULL_ES3=1"
@@ -92,9 +87,13 @@ set(EMSCRIPTEN_LINK_FLAGS
     "--bind"
 )
 
-# 如果有自定义 shell HTML 模板则使用
+# 如果有自定义 shell HTML 模板则使用（必须拆成两个独立参数）
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
-    list(APPEND EMSCRIPTEN_LINK_FLAGS "--shell-file ${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
+    list(APPEND EMSCRIPTEN_LINK_FLAGS
+        "--shell-file"
+        "${CMAKE_CURRENT_SOURCE_DIR}/shell.html"
+    )
+    message(STATUS "  Shell template: ${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
 endif()
 
 target_link_options(MulanGeoWasm PRIVATE ${EMSCRIPTEN_LINK_FLAGS})
