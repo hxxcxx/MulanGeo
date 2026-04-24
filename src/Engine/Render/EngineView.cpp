@@ -189,7 +189,7 @@ void EngineView::renderFrame() {
     cmd->setScissorRect(sc);
 
     // 委托给 SceneRenderer（含 CameraUBO 更新 + PSO 设置 + 绘制）
-    m_sceneRenderer->render(m_renderQueue, m_camera, cmd);
+    m_sceneRenderer->render(m_renderQueue, m_camera, cmd, m_lightEnv);
 
     // --- end render pass ---
     if (m_renderTarget) {

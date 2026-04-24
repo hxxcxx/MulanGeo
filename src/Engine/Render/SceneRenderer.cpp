@@ -230,15 +230,27 @@ void SceneRenderer::createUBOs() {
     m_materialBuffer = m_device->createBuffer(
         BufferDesc::uniform(sizeof(MaterialUBO), "MaterialUBO"));
 
+    // 确保默认光照环境有一个方向光
+    if (m_lightEnv.lightCount == 0) {
+        m_lightEnv.addLight(Light::directional({-0.3, -1.0, -0.4}, {1, 1, 1}, 1.0));
+    }
+
     MaterialUBO mat{};
-    // 默认浅灰
     mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
-    // 光从上方偏前照射
-    mat.lightDir[0]  = 0.13f; mat.lightDir[1]  = 0.76f;  mat.lightDir[2]  = -0.20f;
-    // 光源颜色 × 强度（参考项目: (0.75,0.87,0.96) × 10.0 × 0.4）
-    mat.lightColor[0] = 3.0f; mat.lightColor[1] = 3.5f;  mat.lightColor[2] = 3.8f;
-    // 环境光（参考项目: (0.88,0.78,0.66) × 0.3）
-    mat.ambientColor[0] = 0.26f; mat.ambientColor[1] = 0.24f; mat.ambientColor[2] = 0.20f;
+
+    // 从 LightEnvironment 填充光照
+    if (auto* dl = m_lightEnv.primaryDirectional()) {
+        mat.lightDir[0]  = static_cast<float>(dl->direction.x);
+        mat.lightDir[1]  = static_cast<float>(dl->direction.y);
+        mat.lightDir[2]  = static_cast<float>(dl->direction.z);
+        mat.lightColor[0] = static_cast<float>(dl->color.x * dl->intensity * 3.0f);
+        mat.lightColor[1] = static_cast<float>(dl->color.y * dl->intensity * 3.5f);
+        mat.lightColor[2] = static_cast<float>(dl->color.z * dl->intensity * 3.8f);
+    }
+    mat.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
+    mat.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
+    mat.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
+
     // 边线颜色：深灰
     mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
     m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
@@ -285,8 +297,15 @@ void SceneRenderer::updateCameraUBO(const Camera& camera) {
 // 渲染
 // ============================================================
 
-void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, CommandList* cmdList) {
+void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, CommandList* cmdList,
+                           const LightEnvironment& lightEnv) {
     m_stats = {};
+    m_lightEnv = lightEnv;
+
+    // 确保至少有一个默认方向光
+    if (m_lightEnv.lightCount == 0) {
+        m_lightEnv.addLight(Light::directional({-0.3, -1.0, -0.4}));
+    }
 
     if (!m_solidPso) return;
 
@@ -360,18 +379,34 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, Pipel
         if (item.selected && m_materialBuffer) {
             MaterialUBO hl{};
             hl.baseColor[0] = 0.3f; hl.baseColor[1] = 0.6f; hl.baseColor[2] = 1.0f;
-            hl.lightDir[0]  = 0.13f; hl.lightDir[1]  = 0.76f; hl.lightDir[2]  = -0.20f;
-            hl.lightColor[0] = 3.0f; hl.lightColor[1] = 3.5f; hl.lightColor[2] = 3.8f;
-            hl.ambientColor[0] = 0.26f; hl.ambientColor[1] = 0.24f; hl.ambientColor[2] = 0.20f;
+            if (auto* dl = m_lightEnv.primaryDirectional()) {
+                hl.lightDir[0]  = static_cast<float>(dl->direction.x);
+                hl.lightDir[1]  = static_cast<float>(dl->direction.y);
+                hl.lightDir[2]  = static_cast<float>(dl->direction.z);
+                hl.lightColor[0] = static_cast<float>(dl->color.x * dl->intensity * 3.0f);
+                hl.lightColor[1] = static_cast<float>(dl->color.y * dl->intensity * 3.5f);
+                hl.lightColor[2] = static_cast<float>(dl->color.z * dl->intensity * 3.8f);
+            }
+            hl.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
+            hl.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
+            hl.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
             hl.wireColor[0] = 0.2f; hl.wireColor[1] = 0.5f; hl.wireColor[2] = 1.0f;
             m_materialBuffer->update(0, sizeof(MaterialUBO), &hl);
         } else if (m_materialBuffer) {
             // 恢复默认材质
             MaterialUBO mat{};
             mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
-            mat.lightDir[0]  = 0.13f; mat.lightDir[1]  = 0.76f; mat.lightDir[2]  = -0.20f;
-            mat.lightColor[0] = 3.0f; mat.lightColor[1] = 3.5f; mat.lightColor[2] = 3.8f;
-            mat.ambientColor[0] = 0.26f; mat.ambientColor[1] = 0.24f; mat.ambientColor[2] = 0.20f;
+            if (auto* dl = m_lightEnv.primaryDirectional()) {
+                mat.lightDir[0]  = static_cast<float>(dl->direction.x);
+                mat.lightDir[1]  = static_cast<float>(dl->direction.y);
+                mat.lightDir[2]  = static_cast<float>(dl->direction.z);
+                mat.lightColor[0] = static_cast<float>(dl->color.x * dl->intensity * 3.0f);
+                mat.lightColor[1] = static_cast<float>(dl->color.y * dl->intensity * 3.5f);
+                mat.lightColor[2] = static_cast<float>(dl->color.z * dl->intensity * 3.8f);
+            }
+            mat.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
+            mat.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
+            mat.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
             mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
             m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
         }

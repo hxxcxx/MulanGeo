@@ -157,6 +157,11 @@ public:
     Camera&       camera()       { return m_camera; }
     const Camera& camera() const { return m_camera; }
 
+    // --- 光照环境 ---
+
+    LightEnvironment&       lightEnvironment()       { return m_lightEnv; }
+    const LightEnvironment& lightEnvironment() const { return m_lightEnv; }
+
     // --- 场景 ---
 
     /// 设置渲染场景（接管每帧收集逻辑：updateWorldTransforms + CullVisitor）
@@ -183,6 +188,7 @@ private:
     std::unique_ptr<SceneRenderer>      m_sceneRenderer;
     RenderQueue                         m_renderQueue;
     Scene*                              m_scene = nullptr;
+    LightEnvironment                    m_lightEnv;
 
     // --- 状态 ---
 

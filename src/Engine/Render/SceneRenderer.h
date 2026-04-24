@@ -18,6 +18,7 @@
 #include "../Scene/Camera.h"
 #include "RenderGeometry.h"
 #include "GeometryCache.h"
+#include "LightEnvironment.h"
 
 #include <cstdint>
 
@@ -68,7 +69,12 @@ public:
     void clearCache() { m_cache.clear(); }
 
     // --- 渲染 ---
-    void render(const RenderQueue& queue, const Camera& camera, CommandList* cmdList);
+    void render(const RenderQueue& queue, const Camera& camera, CommandList* cmdList,
+                const LightEnvironment& lightEnv);
+
+    // --- 光照环境 ---
+    void setLightEnvironment(const LightEnvironment& env) { m_lightEnv = env; }
+    LightEnvironment& lightEnvironment() { return m_lightEnv; }
 
     // --- 统计 ---
     const RenderStats& stats() const { return m_stats; }
@@ -100,6 +106,7 @@ private:
     ResourcePtr<Buffer>         m_materialBuffer;
 
     RenderMode   m_renderMode = RenderMode::Solid;
+    LightEnvironment m_lightEnv;
     RenderStats  m_stats;
 };
 
