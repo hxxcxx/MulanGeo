@@ -15,6 +15,10 @@ add_executable(${PROJECT_NAME}
     UI/MainWindow.cpp
     UI/DocWidget.h
     UI/DocWidget.cpp
+    UI/EngineSettings.h
+    UI/EngineSettings.cpp
+    UI/EngineSettingsDialog.h
+    UI/EngineSettingsDialog.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

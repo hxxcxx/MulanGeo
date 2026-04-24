@@ -27,24 +27,23 @@ EngineView::~EngineView() {
 // 初始化
 // ============================================================
 
-bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
+bool EngineView::init(const ViewConfig& cfg, int width, int height) {
     if (m_initialized) return true;
 
     m_width  = width;
     m_height = height;
 
-    // --- Device ---
-    RenderConfig config;
-    config.bufferCount   = 2;
-    config.vsync         = true;
-    config.depthBuffer   = true;
-    config.stencilBuffer = false;
+    // --- 从 ViewConfig 构造 NativeWindowHandle & DeviceCreateInfo ---
+    NativeWindowHandle window = cfg.toNativeWindowHandle();
+    if (!window.valid()) return false;
+
+    RenderConfig renderCfg = cfg.toRenderConfig();
 
     DeviceCreateInfo ci;
-    ci.backend          = GraphicsBackend::Vulkan;
+    ci.backend          = cfg.backend;
     ci.window           = window;
-    ci.renderConfig     = config;
-    ci.enableValidation = true;
+    ci.renderConfig     = renderCfg;
+    ci.enableValidation = cfg.enableValidation;
 
     m_device = RHIDevice::create(ci);
     if (!m_device) return false;
@@ -55,8 +54,8 @@ bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
     scDesc.width       = static_cast<uint32_t>(width);
     scDesc.height      = static_cast<uint32_t>(height);
     scDesc.format      = TextureFormat::BGRA8_UNorm;
-    scDesc.bufferCount = 2;
-    scDesc.vsync       = true;
+    scDesc.bufferCount = cfg.bufferCount;
+    scDesc.vsync       = cfg.vsync;
 
     m_swapchain = dev->createSwapChain(scDesc);
     if (!m_swapchain) { cleanup(); return false; }

@@ -7,6 +7,7 @@
 #include "MainWindow.h"
 #include "DocumentArea.h"
 #include "UIDocument.h"
+#include "EngineSettingsDialog.h"
 
 #include <MulanGeo/Document/Document.h>
 
@@ -87,6 +88,11 @@ void MainWindow::buildRibbonHomeCategory() {
             tr("MulanGeo v1.0\nA CAD geometry viewer."));
     });
     m_panelSetting->addLargeAction(actionAbout);
+
+    m_actionEngineSettings = new QAction(QIcon(":/app/bright/Icon/setting.svg"), tr("Engine"), this);
+    connect(m_actionEngineSettings, &QAction::triggered, this, &MainWindow::onEngineSettings);
+    m_panelSetting->addLargeAction(m_actionEngineSettings);
+
     m_categoryHome->addPanel(m_panelSetting);
 
     ribbonBar()->addCategoryPage(m_categoryHome);
@@ -158,6 +164,11 @@ void MainWindow::onCurrentDocumentChanged(const QString& name) {
     } else {
         statusBar()->showMessage("Active: " + name);
     }
+}
+
+void MainWindow::onEngineSettings() {
+    EngineSettingsDialog dlg(this);
+    dlg.exec();
 }
 
 void MainWindow::onOpenFile() {

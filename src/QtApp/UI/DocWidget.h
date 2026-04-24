@@ -25,6 +25,12 @@ public:
     /// 设置当前 UI 文档（绑定场景到视图）
     void setUIDocument(UIDocument* doc);
 
+    /// 设置引擎初始化配置（需在 init() 之前调用）
+    void setViewConfig(const MulanGeo::Engine::ViewConfig& cfg) { m_viewConfig = cfg; }
+
+    /// 获取可修改的引擎配置引用（需在 init() 之前调用）
+    MulanGeo::Engine::ViewConfig& viewConfig() { return m_viewConfig; }
+
     /// 初始化 Vulkan 设备与 SwapChain（需在 widget 显示后、渲染前调用）
     void init();
 
@@ -54,5 +60,6 @@ private:
     static MulanGeo::Engine::Key translateKey(int qtKey);
 
     MulanGeo::Engine::EngineView  m_view;
+    MulanGeo::Engine::ViewConfig  m_viewConfig;
     UIDocument*                   m_uiDoc = nullptr;
 };

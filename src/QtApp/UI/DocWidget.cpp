@@ -6,6 +6,7 @@
  */
 #include "DocWidget.h"
 #include "UIDocument.h"
+#include "EngineSettings.h"
 
 #include <QShowEvent>
 #include <QResizeEvent>
@@ -33,17 +34,19 @@ DocWidget::~DocWidget() = default;
 void DocWidget::init() {
     if (m_view.isInitialized()) return;
 
+    // 从全局设置读取后端 / MSAA / VSync 等配置
+    EngineSettings::instance().applyTo(m_viewConfig);
+
+    // 填充平台原生窗口信息
 #ifdef _WIN32
-    auto handle = NativeWindowHandle::makeWin32(
-        reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)),
-        reinterpret_cast<uintptr_t>(HWND(winId())));
-#else
-    NativeWindowHandle handle{};
+    m_viewConfig.hInstance = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    m_viewConfig.hWnd      = reinterpret_cast<uintptr_t>(HWND(winId()));
 #endif
+
     const qreal dpr = devicePixelRatioF();
     const int pw = static_cast<int>(width()  * dpr);
     const int ph = static_cast<int>(height() * dpr);
-    if (!m_view.init(handle, pw, ph)) return;
+    if (!m_view.init(m_viewConfig, pw, ph)) return;
 
     if (m_uiDoc) {
         m_uiDoc->attachView(&m_view);

@@ -38,6 +38,67 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
+// ViewConfig — UI 端可控制的引擎初始化配置
+//
+// 由 DocWidget / WASM shell 等上层填充，传入 EngineView::init。
+// EngineView 内部据此创建 NativeWindowHandle / DeviceCreateInfo。
+// ============================================================
+
+struct ViewConfig {
+    // --- 渲染后端 ---
+    GraphicsBackend backend = GraphicsBackend::Vulkan;
+
+    // --- 抗锯齿 ---
+    RenderConfig::MSAALevel msaa = RenderConfig::MSAALevel::None;
+
+    // --- 帧缓冲 ---
+    uint8_t  bufferCount = 2;           // 双缓冲 / 三缓冲
+    bool     vsync       = true;
+
+    // --- 深度缓冲 ---
+    bool     depthBuffer   = true;
+    bool     stencilBuffer = false;
+
+    // --- 调试 ---
+    bool     enableValidation = true;
+
+    // --- 背景色 ---
+    float    clearColor[4] = { 0.12f, 0.13f, 0.18f, 1.0f };
+
+    // --- 原生窗口信息（平台相关）---
+#ifdef _WIN32
+    uintptr_t hInstance = 0;
+    uintptr_t hWnd      = 0;
+#else
+    uintptr_t displayConnection = 0;
+    uintptr_t windowHandle      = 0;
+#endif
+
+    // --- 便捷：转换为 RenderConfig ---
+    RenderConfig toRenderConfig() const {
+        RenderConfig rc;
+        rc.msaa           = msaa;
+        rc.bufferCount    = bufferCount;
+        rc.vsync          = vsync;
+        rc.depthBuffer    = depthBuffer;
+        rc.stencilBuffer  = stencilBuffer;
+        for (int i = 0; i < 4; ++i) rc.clearColor[i] = clearColor[i];
+        return rc;
+    }
+
+    // --- 便捷：转换为 NativeWindowHandle ---
+    NativeWindowHandle toNativeWindowHandle() const {
+#ifdef _WIN32
+        if (hWnd) return NativeWindowHandle::makeWin32(hInstance, hWnd);
+#else
+        if (displayConnection && windowHandle)
+            return NativeWindowHandle::makeXCB(displayConnection, windowHandle);
+#endif
+        return {};
+    }
+};
+
+// ============================================================
 // EngineView — 引擎视图
 // ============================================================
 
@@ -52,7 +113,7 @@ public:
     // --- 生命周期 ---
 
     /// 初始化（窗口第一次显示时调用）
-    bool init(const NativeWindowHandle& window, int width, int height);
+    bool init(const ViewConfig& config, int width, int height);
 
     /// 离屏初始化（无窗口，渲染到纹理）
     bool initOffscreen(int width, int height);

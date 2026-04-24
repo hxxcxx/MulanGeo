@@ -11,6 +11,7 @@
 
 class DocumentArea;
 class UIDocument;
+class EngineSettingsDialog;
 
 class MainWindow : public SARibbonMainWindow {
     Q_OBJECT
@@ -21,6 +22,7 @@ public:
 private slots:
     void onOpenFile();
     void onCurrentDocumentChanged(const QString& name);
+    void onEngineSettings();
 
 private:
     // --- UI 构建 ---
@@ -43,6 +45,7 @@ private:
     QAction* m_actionOpen   = nullptr;
     QAction* m_actionExit   = nullptr;
     QAction* m_actionFitAll = nullptr;
+    QAction* m_actionEngineSettings = nullptr;
 
     // --- Ribbon 结构：Home ---
     SARibbonCategory* m_categoryHome     = nullptr;
