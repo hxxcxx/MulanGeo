@@ -10,7 +10,9 @@
                 "${env:QTDIR}/include/**",
                 "${env:WIN10_SDK_INCLUDE}/um",
                 "${env:WIN10_SDK_INCLUDE}/shared",
-                "${env:WIN10_SDK_INCLUDE}/ucrt"
+                "${env:WIN10_SDK_INCLUDE}/ucrt",
+                "${workspaceFolder}/build/vcpkg_installed/x64-windows/include",
+                "${workspaceFolder}/build/include"
             ],
             "defines": [
                 "_DEBUG",
