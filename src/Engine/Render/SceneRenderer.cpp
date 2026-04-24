@@ -14,32 +14,11 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
-// GPU UBO 结构 — 与 shader Common.hlsli 对齐
+// 常量
 // ============================================================
 
-struct alignas(16) CameraUBO {
-    float view[16];
-    float projection[16];
-    float viewProjection[16];
-    float cameraPos[3];
-    float _pad0;
-};
-
-struct alignas(16) ObjectUBO {
-    float world[16];
-    // std140: float3x3 占 3×16=48 字节（每列 vec4，末尾 padding）
-    float normalMat[12];   // [col0.x .y .z _pad, col1.x .y .z _pad, col2.x .y .z _pad]
-    uint32_t pickId;
-    float _pad2[3];
-};
-
-struct alignas(16) MaterialUBO {
-    float baseColor[3];    float _p0;
-    float lightDir[3];     float _p1;
-    float lightColor[3];   float _p2;
-    float ambientColor[3]; float _p3;
-    float wireColor[3];    float _p4;
-};
+static constexpr float kHighlightColor[] = {0.3f, 0.6f, 1.0f};
+static constexpr float kEdgeColor[]     = {0.10f, 0.10f, 0.10f};
 
 // ============================================================
 // 构造
@@ -58,13 +37,22 @@ bool SceneRenderer::init() {
 
     createPSOs();
     createUBOs();
+
+    // 创建 Pass 管线
+    m_forwardPass = std::make_unique<ForwardPass>(*this);
+    m_passes.push_back(m_forwardPass.get());
+
     return true;
 }
 
 void SceneRenderer::cleanup() {
+    m_passes.clear();
+    m_forwardPass.reset();
+    m_instances.clear();
+    m_defaultMaterial = nullptr;
     m_materialBuffer.reset();
     m_objectBuffer.reset();
-    m_cameraBuffer.reset();
+    m_sceneBuffer.reset();
     m_edgePso.reset();
     m_edgeFs.reset();
     m_edgeVs.reset();
@@ -121,15 +109,10 @@ void SceneRenderer::loadShaders() {
     else if (m_device->backend() == GraphicsBackend::D3D11)
         ext = ".dxbc";
 
-    auto vsPath = shaderDir + "/solid.vert" + ext;
-    auto fsPath = shaderDir + "/solid.frag" + ext;
-    auto edgeVsPath = shaderDir + "/edge.vert" + ext;
-    auto edgeFsPath = shaderDir + "/edge.frag" + ext;
-
-    auto solidVsData = loadFile(vsPath.c_str());
-    auto solidFsData = loadFile(fsPath.c_str());
-    auto edgeVsData = loadFile(edgeVsPath.c_str());
-    auto edgeFsData = loadFile(edgeFsPath.c_str());
+    auto solidVsData = loadFile((shaderDir + "/solid.vert" + ext).c_str());
+    auto solidFsData = loadFile((shaderDir + "/solid.frag" + ext).c_str());
+    auto edgeVsData  = loadFile((shaderDir + "/edge.vert" + ext).c_str());
+    auto edgeFsData  = loadFile((shaderDir + "/edge.frag" + ext).c_str());
 
     ShaderDesc vsDesc;
     vsDesc.type         = ShaderType::Vertex;
@@ -144,17 +127,17 @@ void SceneRenderer::loadShaders() {
     m_solidFs = m_device->createShader(fsDesc);
 
     if (!edgeVsData.empty() && !edgeFsData.empty()) {
-        ShaderDesc edgeVsDesc;
-        edgeVsDesc.type         = ShaderType::Vertex;
-        edgeVsDesc.byteCode     = edgeVsData.data();
-        edgeVsDesc.byteCodeSize = static_cast<uint32_t>(edgeVsData.size());
-        m_edgeVs = m_device->createShader(edgeVsDesc);
+        ShaderDesc evsDesc;
+        evsDesc.type         = ShaderType::Vertex;
+        evsDesc.byteCode     = edgeVsData.data();
+        evsDesc.byteCodeSize = static_cast<uint32_t>(edgeVsData.size());
+        m_edgeVs = m_device->createShader(evsDesc);
 
-        ShaderDesc edgeFsDesc;
-        edgeFsDesc.type         = ShaderType::Pixel;
-        edgeFsDesc.byteCode     = edgeFsData.data();
-        edgeFsDesc.byteCodeSize = static_cast<uint32_t>(edgeFsData.size());
-        m_edgeFs = m_device->createShader(edgeFsDesc);
+        ShaderDesc efsDesc;
+        efsDesc.type         = ShaderType::Pixel;
+        efsDesc.byteCode     = edgeFsData.data();
+        efsDesc.byteCodeSize = static_cast<uint32_t>(edgeFsData.size());
+        m_edgeFs = m_device->createShader(efsDesc);
     }
 }
 
@@ -168,60 +151,50 @@ void SceneRenderer::createPSOs() {
         .add(VertexSemantic::Normal,    VertexFormat::Float3)
         .add(VertexSemantic::TexCoord0, VertexFormat::Float2);
 
-    GraphicsPipelineDesc solidDesc;
-    solidDesc.name                  = "Solid";
-    solidDesc.vs                    = m_solidVs.get();
-    solidDesc.ps                    = m_solidFs.get();
-    solidDesc.vertexLayout          = m_vertexLayout;
-    solidDesc.topology              = PrimitiveTopology::TriangleList;
-    solidDesc.cullMode              = CullMode::None;
-    solidDesc.frontFace             = FrontFace::CounterClockwise;
-    solidDesc.fillMode              = FillMode::Solid;
-    solidDesc.depthStencil.depthEnable = true;
-    solidDesc.depthStencil.depthWrite  = true;
-    solidDesc.depthStencil.depthFunc   = CompareFunc::LessEqual;
-
-    using DB = DescriptorBinding;
-    solidDesc.descriptorBindings[0] = {0, 1, DB::kStageVertex | DB::kStageFragment};
-    solidDesc.descriptorBindings[1] = {1, 1, DB::kStageVertex | DB::kStageFragment};
-    solidDesc.descriptorBindings[2] = {2, 1, DB::kStageFragment};
-    solidDesc.descriptorBindingCount = 3;
-
-    m_solidPso = m_device->createPipelineState(solidDesc);
-
-    // --- Edge PSO ---
-    if (m_edgeVs && m_edgeFs) {
-        GraphicsPipelineDesc edgeDesc;
-        edgeDesc.name                  = "Edge";
-        edgeDesc.vs                    = m_edgeVs.get();
-        edgeDesc.ps                    = m_edgeFs.get();
-        edgeDesc.vertexLayout          = m_vertexLayout;
-        edgeDesc.topology              = PrimitiveTopology::LineList;
-        edgeDesc.cullMode              = CullMode::None;
-        edgeDesc.frontFace             = FrontFace::CounterClockwise;
-        edgeDesc.fillMode              = FillMode::Solid;
-        edgeDesc.depthStencil.depthEnable  = true;
-        edgeDesc.depthStencil.depthWrite   = false;
-        edgeDesc.depthStencil.depthFunc    = CompareFunc::LessEqual;
-        // 深度偏移：边线推前避免 z-fighting
-        edgeDesc.depthStencil.depthBias        = 1.0f;
-        edgeDesc.depthStencil.depthBiasClamp   = 0.0f;
-        edgeDesc.depthStencil.slopeScaledDepthBias = 1.5f;
+    auto makeDesc = [&](Shader* vs, Shader* ps, PrimitiveTopology topo) {
+        GraphicsPipelineDesc desc{};
+        desc.name                  = (topo == PrimitiveTopology::LineList) ? "Edge" : "Solid";
+        desc.vs                    = vs;
+        desc.ps                    = ps;
+        desc.vertexLayout          = m_vertexLayout;
+        desc.topology              = topo;
+        desc.cullMode              = CullMode::None;
+        desc.frontFace             = FrontFace::CounterClockwise;
+        desc.fillMode              = FillMode::Solid;
+        desc.depthStencil.depthEnable = true;
+        desc.depthStencil.depthFunc   = CompareFunc::LessEqual;
 
         using DB = DescriptorBinding;
-        edgeDesc.descriptorBindings[0] = {0, 1, DB::kStageVertex | DB::kStageFragment};
-        edgeDesc.descriptorBindings[1] = {1, 1, DB::kStageVertex | DB::kStageFragment};
-        edgeDesc.descriptorBindings[2] = {2, 1, DB::kStageFragment};
-        edgeDesc.descriptorBindingCount = 3;
+        desc.descriptorBindings[0] = {0, 1, DB::kStageVertex | DB::kStageFragment};
+        desc.descriptorBindings[1] = {1, 1, DB::kStageVertex | DB::kStageFragment};
+        desc.descriptorBindings[2] = {2, 1, DB::kStageFragment};
+        desc.descriptorBindingCount = 3;
+        return desc;
+    };
 
+    auto solidDesc = makeDesc(m_solidVs.get(), m_solidFs.get(),
+                              PrimitiveTopology::TriangleList);
+    solidDesc.depthStencil.depthWrite = true;
+    m_solidPso = m_device->createPipelineState(solidDesc);
+
+    if (m_edgeVs && m_edgeFs) {
+        auto edgeDesc = makeDesc(m_edgeVs.get(), m_edgeFs.get(),
+                                 PrimitiveTopology::LineList);
+        edgeDesc.depthStencil.depthWrite              = false;
+        edgeDesc.depthStencil.depthBias               = 1.0f;
+        edgeDesc.depthStencil.depthBiasClamp          = 0.0f;
+        edgeDesc.depthStencil.slopeScaledDepthBias    = 1.5f;
         m_edgePso = m_device->createPipelineState(edgeDesc);
     }
 }
 
+// ============================================================
+// UBO 创建 (per-frame ring buffer)
+// ============================================================
+
 void SceneRenderer::createUBOs() {
-    auto* dev = m_device;
-    m_cameraBuffer = m_device->createBuffer(
-        BufferDesc::uniform(sizeof(CameraUBO), "CameraUBO"));
+    m_sceneBuffer = m_device->createBuffer(
+        BufferDesc::uniform(sizeof(SceneUBO), "SceneUBO"));
 
     m_objectBuffer = m_device->createBuffer(
         BufferDesc::uniform(kMaxDrawCalls * sizeof(ObjectUBO), "ObjectUBO_Ring"));
@@ -229,27 +202,36 @@ void SceneRenderer::createUBOs() {
     m_materialBuffer = m_device->createBuffer(
         BufferDesc::uniform(kMaxDrawCalls * sizeof(MaterialUBO), "MaterialUBO_Ring"));
 
-    // 确保默认光照环境有一个方向光
+    // 默认光照
     if (m_lightEnv.lightCount == 0) {
         m_lightEnv.addLight(Light::directional({-0.3, -1.0, -0.4}, {1, 1, 1}, 1.0));
     }
 
-    MaterialUBO mat{};
-    mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
-    fillLightingUBO(mat);
-    // 边线颜色：深灰
-    mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
-    m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
+    // 初始化 slot[0] 为默认材质，避免首帧读到零值
+    {
+        auto defaultGpu = MaterialGPU::fromMaterial(Material::defaultPBR());
+        m_materialBuffer->update(0, sizeof(MaterialUBO), &defaultGpu);
+    }
+
+    // 默认材质实例
+    auto* defaultAsset = MaterialCache::instance().defaultPBR();
+    if (defaultAsset) {
+        m_defaultMaterial = getOrCreateInstance(defaultAsset->id());
+    } else {
+        auto inst = std::make_unique<MaterialInstance>(Material::defaultPBR());
+        m_defaultMaterial = inst.get();
+        m_instances[0] = std::move(inst);
+    }
 }
 
 // ============================================================
-// Camera UBO 更新
+// SceneUBO 更新 (每帧一次)
 // ============================================================
 
-void SceneRenderer::updateCameraUBO(const Camera& camera) {
-    if (!m_cameraBuffer) return;
+void SceneRenderer::updateSceneUBO(const Camera& camera) {
+    if (!m_sceneBuffer) return;
 
-    CameraUBO ubo{};
+    SceneUBO ubo{};
 
     auto view     = camera.viewMatrix();
     auto proj     = camera.projectionMatrix();
@@ -272,12 +254,48 @@ void SceneRenderer::updateCameraUBO(const Camera& camera) {
     ubo.cameraPos[1] = static_cast<float>(pos.y);
     ubo.cameraPos[2] = static_cast<float>(pos.z);
 
-    m_cameraBuffer->update(0, sizeof(CameraUBO), &ubo);
+    // 光照
+    if (auto* dl = m_lightEnv.primaryDirectional()) {
+        ubo.lightDir[0] = static_cast<float>(dl->direction.x);
+        ubo.lightDir[1] = static_cast<float>(dl->direction.y);
+        ubo.lightDir[2] = static_cast<float>(dl->direction.z);
+        float intensity = static_cast<float>(dl->intensity) * 3.5f;
+        ubo.lightColor[0] = static_cast<float>(dl->color.x) * intensity;
+        ubo.lightColor[1] = static_cast<float>(dl->color.y) * intensity;
+        ubo.lightColor[2] = static_cast<float>(dl->color.z) * intensity;
+    }
+    ubo.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
+    ubo.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
+    ubo.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
+
+    // 显示设置
+    ubo.edgeColor[0]      = kEdgeColor[0];
+    ubo.edgeColor[1]      = kEdgeColor[1];
+    ubo.edgeColor[2]      = kEdgeColor[2];
+    ubo.highlightColor[0] = kHighlightColor[0];
+    ubo.highlightColor[1] = kHighlightColor[1];
+    ubo.highlightColor[2] = kHighlightColor[2];
+
+    m_sceneBuffer->update(0, sizeof(SceneUBO), &ubo);
 }
 
 // ============================================================
-// PSO finalize（需要在 swapchain/rendertarget 就绪后调用）
+// 材质实例缓存
 // ============================================================
+
+MaterialInstance* SceneRenderer::getOrCreateInstance(uint32_t materialId) {
+    auto it = m_instances.find(materialId);
+    if (it != m_instances.end())
+        return it->second.get();
+
+    auto* asset = MaterialCache::instance().findById(materialId);
+    if (!asset) return nullptr;
+
+    auto inst = std::make_unique<MaterialInstance>(asset);
+    auto* ptr = inst.get();
+    m_instances[materialId] = std::move(inst);
+    return ptr;
+}
 
 // ============================================================
 // 渲染
@@ -289,15 +307,17 @@ void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, Comma
     m_lightEnv = lightEnv;
     m_drawCallIndex = 0;
 
-    // 确保至少有一个默认方向光
+    // 强制第一帧的首次 MaterialUBO 写入（与任何真实状态不同）
+    m_currentMatState = {0, true};
+
     if (m_lightEnv.lightCount == 0) {
         m_lightEnv.addLight(Light::directional({-0.3, -1.0, -0.4}));
     }
 
     if (!m_solidPso) return;
 
-    // 更新 Camera UBO（每帧一次）
-    updateCameraUBO(camera);
+    // 更新 SceneUBO (每帧一次)
+    updateSceneUBO(camera);
 
     Viewport vp{0.0f, 0.0f,
                  static_cast<float>(camera.width()),
@@ -305,134 +325,112 @@ void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, Comma
                  0.0f, 1.0f};
     cmdList->setViewport(vp);
 
-    // --- Pass 1: Solid faces ---
-    PipelineState* solidPso = selectPipeline();
-    if (solidPso) {
-        cmdList->setPipelineState(solidPso);
-        for (const auto& item : queue.opaqueItems()) {
-            drawItem(item, cmdList, solidPso, false);
-        }
-    }
+    // 构建 PassContext，委托给 Pass 管线
+    PassContext ctx(m_drawCallIndex, m_stats);
+    ctx.device          = m_device;
+    ctx.cmd             = cmdList;
+    ctx.queue           = &queue;
+    ctx.sceneBuffer     = m_sceneBuffer.get();
+    ctx.objectBuffer    = m_objectBuffer.get();
+    ctx.materialBuffer  = m_materialBuffer.get();
+    ctx.sceneOffset     = 0;
+    ctx.frameBaseIndex  = 0;
+    ctx.solidPso        = m_solidPso.get();
+    ctx.edgePso         = m_edgePso.get();
 
-    // --- Pass 2: Edge lines (overlay) ---
-    PipelineState* edgePso = selectEdgePipeline();
-    if (edgePso) {
-        cmdList->setPipelineState(edgePso);
-        for (const auto& item : queue.edgeItems()) {
-            drawItem(item, cmdList, edgePso, true);
-        }
-    }
-
-    // --- Pass 3: Transparent ---
-    PipelineState* transPso = selectPipeline();
-    if (transPso) {
-        cmdList->setPipelineState(transPso);
-        for (const auto& item : queue.transparentItems()) {
-            drawItem(item, cmdList, transPso, false);
-        }
-    }
+    for (auto* pass : m_passes)
+        pass->execute(ctx);
 }
 
-PipelineState* SceneRenderer::selectPipeline() const {
-    return m_solidPso.get();
-}
+// ============================================================
+// drawItem
+// ============================================================
 
-PipelineState* SceneRenderer::selectEdgePipeline() const {
-    return m_edgePso.get();
-}
-
-void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, PipelineState* pso, bool isEdge) {
+void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList,
+                             PipelineState* pso, bool isEdge) {
     if (!item.geometry) return;
 
     const auto* gpu = item.gpu;
     if (!gpu || !gpu->vertexBuffer) return;
 
-    // 更新 Object UBO（ring buffer offset）
-    if (m_objectBuffer && pso) {
-        uint32_t ringIndex = m_drawCallIndex % kMaxDrawCalls;
-        uint32_t objOffset = ringIndex * sizeof(ObjectUBO);
-        uint32_t matOffset = ringIndex * sizeof(MaterialUBO);
+    if (!m_objectBuffer || !pso) return;
 
-        ObjectUBO obj{};
-        for (int i = 0; i < 16; ++i)
-            obj.world[i] = static_cast<float>(glm::value_ptr(item.worldTransform)[i]);
+    uint32_t ringIndex = m_drawCallIndex % kMaxDrawCalls;
+    uint32_t objOffset = ringIndex * sizeof(ObjectUBO);
+    uint32_t matOffset = ringIndex * sizeof(MaterialUBO);
 
-        Mat3 normalMat3 = glm::transpose(glm::inverse(Mat3(item.worldTransform)));
-        for (int col = 0; col < 3; ++col)
-            for (int row = 0; row < 3; ++row)
-                obj.normalMat[col * 4 + row] = static_cast<float>(normalMat3[col][row]);
+    // --- 1. 写 ObjectUBO (每次必须) ---
 
-        obj.pickId = item.pickId;
-        m_objectBuffer->update(objOffset, sizeof(ObjectUBO), &obj);
+    ObjectUBO obj{};
+    for (int i = 0; i < 16; ++i)
+        obj.world[i] = static_cast<float>(glm::value_ptr(item.worldTransform)[i]);
 
-        // 材质：选中高亮 / 默认
-        if (item.selected && m_materialBuffer) {
-            MaterialUBO hl{};
-            hl.baseColor[0] = 0.3f; hl.baseColor[1] = 0.6f; hl.baseColor[2] = 1.0f;
-            fillLightingUBO(hl);
-            hl.wireColor[0] = 0.2f; hl.wireColor[1] = 0.5f; hl.wireColor[2] = 1.0f;
-            m_materialBuffer->update(matOffset, sizeof(MaterialUBO), &hl);
-        } else if (m_materialBuffer) {
-            MaterialUBO mat{};
-            mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
-            fillLightingUBO(mat);
-            mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
-            m_materialBuffer->update(matOffset, sizeof(MaterialUBO), &mat);
+    Mat3 normalMat3 = glm::transpose(glm::inverse(Mat3(item.worldTransform)));
+    for (int col = 0; col < 3; ++col)
+        for (int row = 0; row < 3; ++row)
+            obj.normalMat[col * 4 + row] = static_cast<float>(normalMat3[col][row]);
+
+    obj.pickId   = item.pickId;
+    obj.selected = item.selected ? 1u : 0u;
+    m_objectBuffer->update(objOffset, sizeof(ObjectUBO), &obj);
+
+    // --- 2. 写 MaterialUBO (仅不透明/半透明，边线跳过) ---
+
+    if (!isEdge && m_materialBuffer) {
+        MaterialState newState{item.materialIndex, item.selected};
+
+        if (newState != m_currentMatState) {
+            // 查找材质实例
+            MaterialInstance* instance = nullptr;
+            if (item.materialIndex != 0xFFFF)
+                instance = getOrCreateInstance(item.materialIndex);
+            if (!instance)
+                instance = m_defaultMaterial;
+
+            // 选中高亮
+            if (item.selected) {
+                instance->setHighlight({kHighlightColor[0],
+                                        kHighlightColor[1],
+                                        kHighlightColor[2]});
+            } else {
+                instance->clearHighlight();
+            }
+
+            // MaterialGPU (80B) 直传
+            auto gpuMat = instance->toGPU();
+            m_materialBuffer->update(matOffset, sizeof(MaterialUBO), &gpuMat);
+            m_currentMatState = newState;
+            ++m_stats.materialWrites;
         }
-
-        RHIDevice::UniformBufferBind uboBinds[] = {
-            { 0, m_cameraBuffer.get(),   0, sizeof(CameraUBO) },
-            { 1, m_objectBuffer.get(),   objOffset, sizeof(ObjectUBO) },
-            { 2, m_materialBuffer.get(), matOffset, sizeof(MaterialUBO) },
-        };
-        m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
     }
+
+    // --- 3. 绑定 UBO ---
+
+    RHIDevice::UniformBufferBind uboBinds[] = {
+        { 0, m_sceneBuffer.get(),    0,           sizeof(SceneUBO) },
+        { 1, m_objectBuffer.get(),   objOffset,   sizeof(ObjectUBO) },
+        { 2, m_materialBuffer.get(), matOffset,    sizeof(MaterialUBO) },
+    };
+    m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
+
+    // --- 4. 绘制 ---
 
     cmdList->setVertexBuffer(0, gpu->vertexBuffer.get());
 
     if (gpu->indexBuffer && gpu->indexCount > 0) {
         cmdList->setIndexBuffer(gpu->indexBuffer.get());
-        cmdList->drawIndexed(DrawIndexedAttribs{
-            .indexCount = gpu->indexCount,
-        });
-        if (isEdge) {
-            m_stats.lines += gpu->indexCount / 2;
-        } else {
-            m_stats.triangles += gpu->indexCount / 3;
-        }
+        cmdList->drawIndexed(DrawIndexedAttribs{ .indexCount = gpu->indexCount });
+        if (isEdge) m_stats.lines += gpu->indexCount / 2;
+        else        m_stats.triangles += gpu->indexCount / 3;
     } else {
-        cmdList->draw(DrawAttribs{
-            .vertexCount = gpu->vertexCount,
-        });
-        if (isEdge) {
-            m_stats.lines += gpu->vertexCount / 2;
-        } else {
-            m_stats.triangles += gpu->vertexCount / 3;
-        }
+        cmdList->draw(DrawAttribs{ .vertexCount = gpu->vertexCount });
+        if (isEdge) m_stats.lines += gpu->vertexCount / 2;
+        else        m_stats.triangles += gpu->vertexCount / 3;
     }
 
     ++m_stats.drawCalls;
     ++m_stats.items;
     ++m_drawCallIndex;
-}
-
-// ============================================================
-// 光照 UBO 填充辅助
-// ============================================================
-
-void SceneRenderer::fillLightingUBO(MaterialUBO& mat) {
-    if (auto* dl = m_lightEnv.primaryDirectional()) {
-        mat.lightDir[0] = static_cast<float>(dl->direction.x);
-        mat.lightDir[1] = static_cast<float>(dl->direction.y);
-        mat.lightDir[2] = static_cast<float>(dl->direction.z);
-        float intensity = static_cast<float>(dl->intensity) * 3.5f;
-        mat.lightColor[0] = static_cast<float>(dl->color.x) * intensity;
-        mat.lightColor[1] = static_cast<float>(dl->color.y) * intensity;
-        mat.lightColor[2] = static_cast<float>(dl->color.z) * intensity;
-    }
-    mat.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
-    mat.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
-    mat.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
 }
 
 } // namespace MulanGeo::Engine

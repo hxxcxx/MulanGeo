@@ -1,49 +1,50 @@
 /*
  * Shader 公共头 — 所有 shader 共享的常量与结构体
  *
- * Camera (b0): 视图/投影矩阵
- * Object (b1): 每物体世界变换、pickId
- * Material (b2): 材质参数
+ * Scene   (b0): 每帧更新一次 — 相机 + 光照 + 显示设置
+ * Object  (b1): 每 draw call — 物体变换 + 选中状态
+ * Material(b2): 仅切换时 — 材质外观 (与 MaterialGPU 布局一致)
  */
 
 #ifndef MULAN_GEO_COMMON_HLSLI
 #define MULAN_GEO_COMMON_HLSLI
 
 // ============================================================
-// 相机常量（每帧更新一次）
+// 场景常量（每帧更新一次, 288 bytes）
 // ============================================================
-cbuffer Camera : register(b0) {
+cbuffer Scene : register(b0) {
     float4x4 View;
     float4x4 Projection;
     float4x4 ViewProjection;
-    float3   CameraPos;
-    float    _pad0;
+    float3   CameraPos;      float _s0;
+    float3   LightDir;       float _s1;   // 主方向光方向
+    float3   LightColor;     float _s2;   // 光源颜色 × 强度
+    float3   AmbientColor;   float _s3;   // 环境光颜色
+    float3   EdgeColor;      float _s4;   // 默认边线颜色
+    float3   HighlightColor; float _s5;   // 选中高亮颜色
 };
 
 // ============================================================
-// 物体常量（每 draw call 更新）
+// 物体常量（每 draw call 更新, 128 bytes）
 // ============================================================
 cbuffer Object : register(b1) {
     float4x4 World;
     float3x3 NormalMatrix;
     uint     PickId;
-    float    _pad1;
+    uint     Selected;    // 0=未选中, 1=选中
 };
 
 // ============================================================
-// 材质常量（按渲染模式）
+// 材质常量（仅切换时更新, 80 bytes = MaterialGPU 直传）
 // ============================================================
 cbuffer Material : register(b2) {
-    float3 BaseColor;
-    float  _pad2;
-    float3 LightDir;       // 归一化定向光方向
-    float  _pad3;
-    float3 LightColor;     // 光源颜色 × 强度
-    float  _pad4;
-    float3 AmbientColor;
-    float  _pad5;
-    float3 WireColor;
-    float  _pad6;
+    float3 BaseColor;  float  Metallic;
+    float3 Emissive;   float  Roughness;
+    float3 Specular;   float  Shininess;
+    float  Alpha;      float  AO;
+    float  EmissiveStrength; float AlphaCutoff;
+    uint   MaterialType; uint AlphaMode;
+    uint   TextureFlags; uint DoubleSided;
 };
 
 // ============================================================

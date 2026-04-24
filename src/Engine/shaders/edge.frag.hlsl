@@ -1,10 +1,11 @@
 /*
  * Edge 渲染 — 像素着色器
- * 输出 WireColor 作为边线颜色（深灰/黑色）
+ * 根据 Selected 标记选择边线颜色
  */
 
 #include "Common.hlsli"
 
 float4 main(VS_OUTPUT_SIMPLE input) : SV_TARGET {
-    return float4(WireColor, 1.0);
+    float3 color = (Selected > 0) ? HighlightColor : EdgeColor;
+    return float4(color, 1.0);
 }

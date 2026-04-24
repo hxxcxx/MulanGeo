@@ -12,6 +12,8 @@ add_library(Engine STATIC
     Render/EngineView.cpp
     Render/TextureLoader.cpp
     Render/TextureCache.cpp
+    # Render passes
+    Render/Pass/ForwardPass.cpp
     # Material system
     Render/Material/MaterialCache.cpp
     Render/Material/MaterialInstance.cpp
