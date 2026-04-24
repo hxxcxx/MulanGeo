@@ -225,10 +225,14 @@ void SceneRenderer::createUBOs() {
         BufferDesc::uniform(sizeof(MaterialUBO), "MaterialUBO"));
 
     MaterialUBO mat{};
-    mat.baseColor[0] = 0.85f; mat.baseColor[1] = 0.85f; mat.baseColor[2] = 0.88f;
-    mat.lightDir[0]  = 0.5f;  mat.lightDir[1]  = 0.8f;  mat.lightDir[2]  = 0.6f;
-    mat.ambientColor[0] = 0.15f; mat.ambientColor[1] = 0.15f; mat.ambientColor[2] = 0.15f;
-    mat.wireColor[0] = 0.12f; mat.wireColor[1] = 0.12f; mat.wireColor[2] = 0.14f;
+    // FreeCAD/OCCT 经典配色：浅灰面
+    mat.baseColor[0] = 0.83f; mat.baseColor[1] = 0.83f; mat.baseColor[2] = 0.83f;
+    // 光从上方偏前照射（与参考项目 BIMEngine 类似方向）
+    mat.lightDir[0]  = 0.15f; mat.lightDir[1]  = 0.85f; mat.lightDir[2]  = 0.50f;
+    // 环境光强度 0.35 — 确保底面不会太暗
+    mat.ambientColor[0] = 0.35f; mat.ambientColor[1] = 0.35f; mat.ambientColor[2] = 0.35f;
+    // 边线颜色：深灰（FreeCAD 默认接近黑）
+    mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
     m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
 }
 
@@ -348,21 +352,17 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, Pipel
         if (item.selected && m_materialBuffer) {
             MaterialUBO hl{};
             hl.baseColor[0] = 0.3f; hl.baseColor[1] = 0.6f; hl.baseColor[2] = 1.0f;
-            hl.lightDir[0]  = -0.3f; hl.lightDir[1]  = -1.0f; hl.lightDir[2]  = -0.4f;
-            hl.ambientColor[0] = 0.2f; hl.ambientColor[1] = 0.2f; hl.ambientColor[2] = 0.2f;
-            hl.wireColor[0] = 0.3f; hl.wireColor[1] = 0.6f; hl.wireColor[2] = 1.0f;
+            hl.lightDir[0]  = 0.15f; hl.lightDir[1]  = 0.85f; hl.lightDir[2]  = 0.50f;
+            hl.ambientColor[0] = 0.3f; hl.ambientColor[1] = 0.3f; hl.ambientColor[2] = 0.3f;
+            hl.wireColor[0] = 0.2f; hl.wireColor[1] = 0.5f; hl.wireColor[2] = 1.0f;
             m_materialBuffer->update(0, sizeof(MaterialUBO), &hl);
         } else if (m_materialBuffer) {
-            // 边线使用深色，面使用默认材质色
+            // 恢复默认材质（面用浅灰，边线用深灰）
             MaterialUBO mat{};
-            mat.baseColor[0] = 0.85f; mat.baseColor[1] = 0.85f; mat.baseColor[2] = 0.88f;
-            mat.lightDir[0]  = 0.5f;  mat.lightDir[1]  = 0.8f;  mat.lightDir[2]  = 0.6f;
-            mat.ambientColor[0] = 0.15f; mat.ambientColor[1] = 0.15f; mat.ambientColor[2] = 0.15f;
-            if (isEdge) {
-                mat.wireColor[0] = 0.12f; mat.wireColor[1] = 0.12f; mat.wireColor[2] = 0.14f;
-            } else {
-                mat.wireColor[0] = 0.2f; mat.wireColor[1] = 0.2f; mat.wireColor[2] = 0.2f;
-            }
+            mat.baseColor[0] = 0.83f; mat.baseColor[1] = 0.83f; mat.baseColor[2] = 0.83f;
+            mat.lightDir[0]  = 0.15f; mat.lightDir[1]  = 0.85f; mat.lightDir[2]  = 0.50f;
+            mat.ambientColor[0] = 0.35f; mat.ambientColor[1] = 0.35f; mat.ambientColor[2] = 0.35f;
+            mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
             m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
         }
 
