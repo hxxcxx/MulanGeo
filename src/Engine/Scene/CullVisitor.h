@@ -33,21 +33,36 @@ public:
         if (!node.isEffectivelyVisible()) return;
 
         auto* geoNode = node.as<GeometryNode>();
-        if (!geoNode || !geoNode->hasRenderData()) return;
+        if (!geoNode) return;
 
         // 视锥裁剪
         const auto& bounds = geoNode->worldBoundingBox();
         if (!bounds.isEmpty() && !m_frustum.intersects(bounds)) return;
 
-        // 通过裁剪 → 加入 RenderQueue
-        RenderItem item;
-        item.geometry       = &geoNode->cachedRenderGeometry();
-        item.worldTransform = geoNode->worldTransform();
-        item.pickId         = geoNode->pickId();
-        item.materialIndex  = geoNode->materialIndex();
-        item.selected       = geoNode->selected();
+        // 面几何 → RenderQueue
+        if (geoNode->hasRenderData()) {
+            RenderItem item;
+            item.geometry       = &geoNode->cachedRenderGeometry();
+            item.worldTransform = geoNode->worldTransform();
+            item.pickId         = geoNode->pickId();
+            item.materialIndex  = geoNode->materialIndex();
+            item.selected       = geoNode->selected();
 
-        m_queue.add(item);
+            m_queue.add(item);
+        }
+
+        // 边线几何 → RenderQueue（标记 isEdge）
+        if (geoNode->hasEdgeData()) {
+            RenderItem edgeItem;
+            edgeItem.geometry       = &geoNode->cachedEdgeGeometry();
+            edgeItem.worldTransform = geoNode->worldTransform();
+            edgeItem.pickId         = geoNode->pickId();
+            edgeItem.materialIndex  = geoNode->materialIndex();
+            edgeItem.selected       = geoNode->selected();
+            edgeItem.isEdge         = true;
+
+            m_queue.add(edgeItem);
+        }
     }
 
 private:

@@ -44,6 +44,12 @@ static void buildRecursive(BuildContext& ctx) {
                 }
             }
 
+            // 构建边线渲染数据
+            const Eng::MeshGeometry* edgeMesh = geo->edgeMesh();
+            if (edgeMesh && !edgeMesh->empty()) {
+                geoNode->setCachedEdgeGeometry(edgeMesh->asRenderGeometry());
+            }
+
             Eng::SceneNode* rawPtr = geoNode.get();
             ctx.scene.root()->addChild(std::move(geoNode));
             ctx.entityIdToNode[entity.id().value] = rawPtr;

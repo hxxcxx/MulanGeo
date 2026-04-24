@@ -53,6 +53,7 @@ struct RenderItem {
     uint16_t              materialIndex  = 0xFFFF;  ///< 材质索引 (0xFFFF = 默认)
     uint8_t               renderPass     = 0;       ///< 0=Opaque, 1=Transparent
     bool                  selected       = false;   ///< 面/节点是否被选中
+    bool                  isEdge         = false;   ///< true=边线渲染项
 
     /// 排序键：低32位材质索引（不透明：前排距离近优先；透明：后排距离远优先）
     uint64_t              sortKey        = 0;
@@ -100,21 +101,26 @@ public:
 
     /// 分桶 + 排序（在每帧 collect 完成后、渲染前调用）
     void sort(const Vec3& cameraPos) {
-        // 1. 分区：不透明在前，半透明在后
-        auto mid = std::stable_partition(m_items.begin(), m_items.end(),
-            [](const RenderItem& a) { return a.renderPass == 0; });
-        m_opaqueSplit = static_cast<size_t>(mid - m_items.begin());
+        // 1. 分区：不透明在前，边线中间，半透明在后
+        auto mid1 = std::stable_partition(m_items.begin(), m_items.end(),
+            [](const RenderItem& a) { return a.renderPass == 0 && !a.isEdge; });
+        auto mid2 = std::stable_partition(mid1, m_items.end(),
+            [](const RenderItem& a) { return a.isEdge; });
+        m_opaqueSplit = static_cast<size_t>(mid1 - m_items.begin());
+        m_edgeSplit = static_cast<size_t>(mid2 - m_items.begin());
 
         // 2. 不透明区域：按材质分组排序
         for (size_t i = 0; i < m_opaqueSplit; ++i)
             m_items[i].computeOpaqueSortKey(cameraPos);
-        std::sort(m_items.begin(), mid,
+        std::sort(m_items.begin(), mid1,
             [](const RenderItem& a, const RenderItem& b) { return a.sortKey < b.sortKey; });
 
-        // 3. 半透明区域：按距离从远到近
-        for (size_t i = m_opaqueSplit; i < m_items.size(); ++i)
+        // 3. 边线区域：不需要排序
+
+        // 4. 半透明区域：按距离从远到近
+        for (size_t i = m_edgeSplit; i < m_items.size(); ++i)
             m_items[i].computeTransparentSortKey(cameraPos);
-        std::sort(mid, m_items.end(),
+        std::sort(m_items.begin() + m_edgeSplit, m_items.end(),
             [](const RenderItem& a, const RenderItem& b) { return a.sortKey < b.sortKey; });
     }
 
@@ -123,14 +129,20 @@ public:
         return { m_items.data(), m_opaqueSplit };
     }
 
+    /// 边线子范围
+    std::span<const RenderItem> edgeItems() const {
+        return { m_items.data() + m_opaqueSplit, m_edgeSplit - m_opaqueSplit };
+    }
+
     /// 半透明子范围
     std::span<const RenderItem> transparentItems() const {
-        return { m_items.data() + m_opaqueSplit, m_items.size() - m_opaqueSplit };
+        return { m_items.data() + m_edgeSplit, m_items.size() - m_edgeSplit };
     }
 
 private:
     std::vector<RenderItem> m_items;
-    size_t m_opaqueSplit = 0;  ///< 不透明/半透明分割点
+    size_t m_opaqueSplit = 0;  ///< 不透明/边线分割点
+    size_t m_edgeSplit   = 0;  ///< 边线/半透明分割点
 };
 
 } // namespace MulanGeo::Engine

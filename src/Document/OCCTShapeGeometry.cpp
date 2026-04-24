@@ -14,6 +14,9 @@
 #include <TopoDS.hxx>
 #include <TopLoc_Location.hxx>
 #include <Poly_Triangulation.hxx>
+#include <Poly_PolygonOnTriangulation.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <GCPnts_TangentialDeflection.hxx>
 #include <TopAbs.hxx>
 
 #include <algorithm>
@@ -31,6 +34,15 @@ const Engine::MeshGeometry* OCCTShapeGeometry::displayMesh() const {
         m_meshGenerated = true;
     }
     return m_cachedMesh.get();
+}
+
+const Engine::MeshGeometry* OCCTShapeGeometry::edgeMesh() const {
+    std::lock_guard lock(m_cacheMutex);
+    if (!m_edgeMeshGenerated) {
+        m_cachedEdgeMesh = extractEdges();
+        m_edgeMeshGenerated = true;
+    }
+    return m_cachedEdgeMesh.get();
 }
 
 Engine::AABB OCCTShapeGeometry::boundingBox() const {
@@ -103,6 +115,89 @@ std::unique_ptr<Engine::MeshGeometry> OCCTShapeGeometry::triangulate() const {
             mesh->indices.push_back(baseIndex + static_cast<uint32_t>(n0 - 1));
             mesh->indices.push_back(baseIndex + static_cast<uint32_t>(n1 - 1));
             mesh->indices.push_back(baseIndex + static_cast<uint32_t>(n2 - 1));
+        }
+    }
+
+    if (!mesh->empty()) {
+        mesh->computeBounds();
+    }
+
+    return mesh;
+}
+
+std::unique_ptr<Engine::MeshGeometry> OCCTShapeGeometry::extractEdges() const {
+    // 计算线性偏差（与三角化一致）
+    Bnd_Box box;
+    BRepBndLib::Add(m_shape, box);
+    if (box.IsVoid()) return nullptr;
+
+    double xmin, ymin, zmin, xmax, ymax, zmax;
+    box.Get(xmin, ymin, zmin, xmax, ymax, zmax);
+
+    double dx = xmax - xmin;
+    double dy = ymax - ymin;
+    double dz = zmax - zmin;
+    double maxDim = std::max({dx, dy, dz});
+    double linearDeflection = maxDim * 0.001;
+
+    // 先确保形状已三角化
+    TopoDS_Shape shapeToMesh = m_shape;
+    BRepMesh_IncrementalMesh mesher(shapeToMesh, linearDeflection, false, 0.5, true);
+    mesher.Perform();
+    if (!mesher.IsDone()) return nullptr;
+
+    auto mesh = std::make_unique<Engine::MeshGeometry>();
+    mesh->topology = Engine::PrimitiveTopology::LineList;
+    // 边线顶点只需 position(3)，但为了复用同一个 vertex layout，补齐 normal(3) + uv(2)
+    mesh->vertexStride = sizeof(float) * 8;
+
+    for (TopExp_Explorer edgeExp(shapeToMesh, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
+        const auto& edge = TopoDS::Edge(edgeExp.Current());
+
+        // 尝试从三角化中获取边的折线
+        TopLoc_Location loc;
+        Handle(Poly_PolygonOnTriangulation) polyOnTri;
+        Handle(Poly_Triangulation) tri;
+
+        BRep_Tool::PolygonOnTriangulation(edge, polyOnTri, tri, loc, 1);
+        if (polyOnTri.IsNull() || tri.IsNull()) continue;
+
+        const TColStd_Array1OfInteger& indices = polyOnTri->Nodes();
+        const gp_Trsf& trsf = loc.Transformation();
+
+        // 将折线节点转为线段
+        int nbNodes = indices.Length();
+        for (int i = indices.Lower(); i + 1 <= indices.Upper(); ++i) {
+            int idx0 = indices(i);
+            int idx1 = indices(i + 1);
+            gp_Pnt p0 = tri->Node(idx0).Transformed(trsf);
+            gp_Pnt p1 = tri->Node(idx1).Transformed(trsf);
+
+            uint32_t baseIdx = static_cast<uint32_t>(mesh->vertexCount());
+
+            // 顶点 0: pos + dummy normal + dummy uv
+            mesh->vertices.push_back(static_cast<float>(p0.X()));
+            mesh->vertices.push_back(static_cast<float>(p0.Y()));
+            mesh->vertices.push_back(static_cast<float>(p0.Z()));
+            mesh->vertices.push_back(0.0f);
+            mesh->vertices.push_back(0.0f);
+            mesh->vertices.push_back(1.0f);
+            mesh->vertices.push_back(0.0f);
+            mesh->vertices.push_back(0.0f);
+
+            // 顶点 1: pos + dummy normal + dummy uv
+            mesh->vertices.push_back(static_cast<float>(p1.X()));
+            mesh->vertices.push_back(static_cast<float>(p1.Y()));
+            mesh->vertices.push_back(static_cast<float>(p1.Z()));
+            mesh->vertices.push_back(0.0f);
+            mesh->vertices.push_back(0.0f);
+            mesh->vertices.push_back(1.0f);
+            mesh->vertices.push_back(0.0f);
+            mesh->vertices.push_back(0.0f);
+
+            // 线段索引
+            mesh->indices.push_back(baseIdx);
+            mesh->indices.push_back(baseIdx + 1);
         }
     }
 

@@ -154,6 +154,8 @@ if(DXC_EXECUTABLE)
         wireframe.frag.hlsl
         pick.vert.hlsl
         pick.frag.hlsl
+        edge.vert.hlsl
+        edge.frag.hlsl
     )
 
     # Common.hlsli 作为依赖（不单独编译）
@@ -172,6 +174,10 @@ if(DXC_EXECUTABLE)
     set(PICK_VERT_ENTRY     main)
     set(PICK_FRAG_STAGE     ps)
     set(PICK_FRAG_ENTRY     main)
+    set(EDGE_VERT_STAGE     vs)
+    set(EDGE_VERT_ENTRY     main)
+    set(EDGE_FRAG_STAGE     ps)
+    set(EDGE_FRAG_ENTRY     main)
 
     foreach(SHADER_FILE ${SHADER_SOURCES})
         # 转为大写标识符用于变量查找

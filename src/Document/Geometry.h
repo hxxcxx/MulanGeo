@@ -38,6 +38,10 @@ public:
     /// @return nullptr 表示该几何体暂无可显示的网格
     virtual const Engine::MeshGeometry* displayMesh() const = 0;
 
+    /// 获取边线网格（用于 CAD 边线叠加渲染）
+    /// 默认返回 nullptr，OCCT 形状等 B-Rep 几何可重写
+    virtual const Engine::MeshGeometry* edgeMesh() const { return nullptr; }
+
     /// 轴对齐包围盒
     virtual Engine::AABB boundingBox() const = 0;
 };

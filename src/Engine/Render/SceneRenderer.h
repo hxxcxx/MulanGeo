@@ -40,6 +40,7 @@ enum class RenderMode : uint8_t {
 struct RenderStats {
     uint32_t drawCalls   = 0;
     uint32_t triangles   = 0;
+    uint32_t lines       = 0;
     uint32_t items       = 0;
 };
 
@@ -78,7 +79,8 @@ private:
     void createUBOs();
     void updateCameraUBO(const Camera& camera);
     PipelineState* selectPipeline() const;
-    void drawItem(const RenderItem& item, CommandList* cmdList);
+    PipelineState* selectEdgePipeline() const;
+    void drawItem(const RenderItem& item, CommandList* cmdList, PipelineState* pso, bool isEdge);
 
     RHIDevice*   m_device;
     GeometryCache m_cache;
@@ -87,6 +89,9 @@ private:
     ResourcePtr<Shader>         m_solidVs;
     ResourcePtr<Shader>         m_solidFs;
     ResourcePtr<PipelineState>  m_solidPso;
+    ResourcePtr<Shader>         m_edgeVs;
+    ResourcePtr<Shader>         m_edgeFs;
+    ResourcePtr<PipelineState>  m_edgePso;
     VertexLayout                m_vertexLayout;
 
     // --- UBO ---

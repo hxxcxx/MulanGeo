@@ -65,6 +65,9 @@ void SceneRenderer::cleanup() {
     m_materialBuffer.reset();
     m_objectBuffer.reset();
     m_cameraBuffer.reset();
+    m_edgePso.reset();
+    m_edgeFs.reset();
+    m_edgeVs.reset();
     m_solidPso.reset();
     m_solidFs.reset();
     m_solidVs.reset();
@@ -73,11 +76,15 @@ void SceneRenderer::cleanup() {
 void SceneRenderer::finalizePipeline(SwapChain* swapchain) {
     if (m_solidPso && swapchain)
         m_solidPso->finalize(swapchain);
+    if (m_edgePso && swapchain)
+        m_edgePso->finalize(swapchain);
 }
 
 void SceneRenderer::finalizePipeline(RenderTarget* rt) {
     if (m_solidPso && rt)
         m_solidPso->finalize(rt);
+    if (m_edgePso && rt)
+        m_edgePso->finalize(rt);
 }
 
 // ============================================================
@@ -116,8 +123,13 @@ void SceneRenderer::loadShaders() {
 
     auto vsPath = shaderDir + "/solid.vert" + ext;
     auto fsPath = shaderDir + "/solid.frag" + ext;
+    auto edgeVsPath = shaderDir + "/edge.vert" + ext;
+    auto edgeFsPath = shaderDir + "/edge.frag" + ext;
+
     auto solidVsData = loadFile(vsPath.c_str());
     auto solidFsData = loadFile(fsPath.c_str());
+    auto edgeVsData = loadFile(edgeVsPath.c_str());
+    auto edgeFsData = loadFile(edgeFsPath.c_str());
 
     ShaderDesc vsDesc;
     vsDesc.type         = ShaderType::Vertex;
@@ -130,6 +142,20 @@ void SceneRenderer::loadShaders() {
     fsDesc.byteCode     = solidFsData.data();
     fsDesc.byteCodeSize = static_cast<uint32_t>(solidFsData.size());
     m_solidFs = m_device->createShader(fsDesc);
+
+    if (!edgeVsData.empty() && !edgeFsData.empty()) {
+        ShaderDesc edgeVsDesc;
+        edgeVsDesc.type         = ShaderType::Vertex;
+        edgeVsDesc.byteCode     = edgeVsData.data();
+        edgeVsDesc.byteCodeSize = static_cast<uint32_t>(edgeVsData.size());
+        m_edgeVs = m_device->createShader(edgeVsDesc);
+
+        ShaderDesc edgeFsDesc;
+        edgeFsDesc.type         = ShaderType::Pixel;
+        edgeFsDesc.byteCode     = edgeFsData.data();
+        edgeFsDesc.byteCodeSize = static_cast<uint32_t>(edgeFsData.size());
+        m_edgeFs = m_device->createShader(edgeFsDesc);
+    }
 }
 
 // ============================================================
@@ -162,6 +188,29 @@ void SceneRenderer::createPSOs() {
     solidDesc.descriptorBindingCount = 3;
 
     m_solidPso = m_device->createPipelineState(solidDesc);
+
+    // --- Edge PSO ---
+    if (m_edgeVs && m_edgeFs) {
+        GraphicsPipelineDesc edgeDesc;
+        edgeDesc.name                  = "Edge";
+        edgeDesc.vs                    = m_edgeVs.get();
+        edgeDesc.ps                    = m_edgeFs.get();
+        edgeDesc.vertexLayout          = m_vertexLayout;
+        edgeDesc.topology              = PrimitiveTopology::LineList;
+        edgeDesc.cullMode              = CullMode::None;
+        edgeDesc.frontFace             = FrontFace::CounterClockwise;
+        edgeDesc.fillMode              = FillMode::Solid;
+        edgeDesc.depthStencil.depthEnable = true;
+        edgeDesc.depthStencil.depthWrite  = false;
+        edgeDesc.depthStencil.depthFunc   = CompareFunc::LessEqual;
+
+        edgeDesc.descriptorBindings[0] = {0, 1, DB::kStageVertex | DB::kStageFragment};
+        edgeDesc.descriptorBindings[1] = {1, 1, DB::kStageVertex | DB::kStageFragment};
+        edgeDesc.descriptorBindings[2] = {2, 1, DB::kStageFragment};
+        edgeDesc.descriptorBindingCount = 3;
+
+        m_edgePso = m_device->createPipelineState(edgeDesc);
+    }
 }
 
 void SceneRenderer::createUBOs() {
@@ -179,7 +228,7 @@ void SceneRenderer::createUBOs() {
     mat.baseColor[0] = 0.85f; mat.baseColor[1] = 0.85f; mat.baseColor[2] = 0.88f;
     mat.lightDir[0]  = 0.5f;  mat.lightDir[1]  = 0.8f;  mat.lightDir[2]  = 0.6f;
     mat.ambientColor[0] = 0.15f; mat.ambientColor[1] = 0.15f; mat.ambientColor[2] = 0.15f;
-    mat.wireColor[0] = 0.2f; mat.wireColor[1] = 0.2f; mat.wireColor[2] = 0.2f;
+    mat.wireColor[0] = 0.12f; mat.wireColor[1] = 0.12f; mat.wireColor[2] = 0.14f;
     m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
 }
 
@@ -232,18 +281,37 @@ void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, Comma
     // 更新 Camera UBO（每帧一次）
     updateCameraUBO(camera);
 
-    PipelineState* pso = selectPipeline();
-    if (!pso) return;
-    cmdList->setPipelineState(pso);
-
     Viewport vp{0.0f, 0.0f,
                  static_cast<float>(camera.width()),
                  static_cast<float>(camera.height()),
                  0.0f, 1.0f};
     cmdList->setViewport(vp);
 
-    for (const auto& item : queue.items()) {
-        drawItem(item, cmdList);
+    // --- Pass 1: Solid faces ---
+    PipelineState* solidPso = selectPipeline();
+    if (solidPso) {
+        cmdList->setPipelineState(solidPso);
+        for (const auto& item : queue.opaqueItems()) {
+            drawItem(item, cmdList, solidPso, false);
+        }
+    }
+
+    // --- Pass 2: Edge lines (overlay) ---
+    PipelineState* edgePso = selectEdgePipeline();
+    if (edgePso) {
+        cmdList->setPipelineState(edgePso);
+        for (const auto& item : queue.edgeItems()) {
+            drawItem(item, cmdList, edgePso, true);
+        }
+    }
+
+    // --- Pass 3: Transparent ---
+    PipelineState* transPso = selectPipeline();
+    if (transPso) {
+        cmdList->setPipelineState(transPso);
+        for (const auto& item : queue.transparentItems()) {
+            drawItem(item, cmdList, transPso, false);
+        }
     }
 }
 
@@ -251,7 +319,11 @@ PipelineState* SceneRenderer::selectPipeline() const {
     return m_solidPso.get();
 }
 
-void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
+PipelineState* SceneRenderer::selectEdgePipeline() const {
+    return m_edgePso.get();
+}
+
+void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, PipelineState* pso, bool isEdge) {
     if (!item.geometry) return;
 
     const auto* geo = item.geometry;
@@ -259,7 +331,7 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
     if (!gpu || !gpu->vertexBuffer) return;
 
     // 更新 Object UBO
-    if (m_objectBuffer && m_solidPso) {
+    if (m_objectBuffer && pso) {
         ObjectUBO obj{};
         for (int i = 0; i < 16; ++i)
             obj.world[i] = static_cast<float>(glm::value_ptr(item.worldTransform)[i]);
@@ -272,7 +344,7 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         obj.pickId = item.pickId;
         m_objectBuffer->update(0, sizeof(ObjectUBO), &obj);
 
-        // 选中面：覆盖材质为高亮色
+        // 选中面或边线：覆盖材质为高亮色
         if (item.selected && m_materialBuffer) {
             MaterialUBO hl{};
             hl.baseColor[0] = 0.3f; hl.baseColor[1] = 0.6f; hl.baseColor[2] = 1.0f;
@@ -280,6 +352,18 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
             hl.ambientColor[0] = 0.2f; hl.ambientColor[1] = 0.2f; hl.ambientColor[2] = 0.2f;
             hl.wireColor[0] = 0.3f; hl.wireColor[1] = 0.6f; hl.wireColor[2] = 1.0f;
             m_materialBuffer->update(0, sizeof(MaterialUBO), &hl);
+        } else if (m_materialBuffer) {
+            // 边线使用深色，面使用默认材质色
+            MaterialUBO mat{};
+            mat.baseColor[0] = 0.85f; mat.baseColor[1] = 0.85f; mat.baseColor[2] = 0.88f;
+            mat.lightDir[0]  = 0.5f;  mat.lightDir[1]  = 0.8f;  mat.lightDir[2]  = 0.6f;
+            mat.ambientColor[0] = 0.15f; mat.ambientColor[1] = 0.15f; mat.ambientColor[2] = 0.15f;
+            if (isEdge) {
+                mat.wireColor[0] = 0.12f; mat.wireColor[1] = 0.12f; mat.wireColor[2] = 0.14f;
+            } else {
+                mat.wireColor[0] = 0.2f; mat.wireColor[1] = 0.2f; mat.wireColor[2] = 0.2f;
+            }
+            m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
         }
 
         RHIDevice::UniformBufferBind uboBinds[] = {
@@ -287,7 +371,7 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
             { 1, m_objectBuffer.get(),   0, m_objectBuffer->desc().size },
             { 2, m_materialBuffer.get(), 0, m_materialBuffer->desc().size },
         };
-        m_device->bindUniformBuffers(cmdList, m_solidPso.get(), uboBinds, 3);
+        m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
     }
 
     cmdList->setVertexBuffer(0, gpu->vertexBuffer.get());
@@ -297,12 +381,20 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         cmdList->drawIndexed(DrawIndexedAttribs{
             .indexCount = gpu->indexCount,
         });
-        m_stats.triangles += gpu->indexCount / 3;
+        if (isEdge) {
+            m_stats.lines += gpu->indexCount / 2;
+        } else {
+            m_stats.triangles += gpu->indexCount / 3;
+        }
     } else {
         cmdList->draw(DrawAttribs{
             .vertexCount = gpu->vertexCount,
         });
-        m_stats.triangles += gpu->vertexCount / 3;
+        if (isEdge) {
+            m_stats.lines += gpu->vertexCount / 2;
+        } else {
+            m_stats.triangles += gpu->vertexCount / 3;
+        }
     }
 
     ++m_stats.drawCalls;

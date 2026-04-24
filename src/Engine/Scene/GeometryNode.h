@@ -46,8 +46,17 @@ public:
     /// 获取缓存的渲染几何（每帧直接使用，不重建）
     const RenderGeometry& cachedRenderGeometry() const { return m_cachedGeo; }
 
-    /// 是否有可渲染数据
+    /// 设置缓存的边线 RenderGeometry
+    void setCachedEdgeGeometry(const RenderGeometry& geo) { m_cachedEdgeGeo = geo; }
+
+    /// 获取缓存的边线渲染几何
+    const RenderGeometry& cachedEdgeGeometry() const { return m_cachedEdgeGeo; }
+
+    /// 是否有可渲染面数据
     bool hasRenderData() const { return m_cachedGeo.vertexCount > 0; }
+
+    /// 是否有可渲染边线数据
+    bool hasEdgeData() const { return m_cachedEdgeGeo.vertexCount > 0; }
 
     /// 材质索引（用于 RenderQueue 排序合并）
     uint16_t materialIndex() const { return m_materialIndex; }
@@ -72,6 +81,7 @@ public:
 
 private:
     RenderGeometry   m_cachedGeo;
+    RenderGeometry   m_cachedEdgeGeo;
     uint16_t         m_materialIndex = 0xFFFF;
     std::vector<Face> m_faces;
 };
