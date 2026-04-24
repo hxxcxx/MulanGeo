@@ -91,6 +91,11 @@ struct DepthStencilDesc {
     uint8_t          stencilWriteMask = 0xFF;
     DepthStencilOpDesc frontFace;
     DepthStencilOpDesc backFace;
+
+    // 深度偏移（用于边线渲染防 z-fighting）
+    float            depthBias     = 0.0f;
+    float            depthBiasClamp = 0.0f;
+    float            slopeScaledDepthBias = 0.0f;
 };
 
 // ============================================================

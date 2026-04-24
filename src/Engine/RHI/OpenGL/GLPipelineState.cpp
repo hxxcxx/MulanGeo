@@ -274,6 +274,14 @@ void GLPipelineState::applyDepthStencilState() const {
         glDisable(GL_DEPTH_TEST);
     }
 
+    // 深度偏移（用于边线渲染防 z-fighting）
+    if (ds.depthBias != 0.0f || ds.slopeScaledDepthBias != 0.0f) {
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(ds.slopeScaledDepthBias, ds.depthBias);
+    } else {
+        glDisable(GL_POLYGON_OFFSET_FILL);
+    }
+
     // 模板测试
     if (ds.stencilEnable) {
         glEnable(GL_STENCIL_TEST);

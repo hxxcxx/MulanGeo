@@ -94,6 +94,11 @@ void VKPipelineState::build(vk::RenderPass renderPass, uint32_t subpass) {
     raster.lineWidth             = 1.0f;
     raster.depthClampEnable      = false;
     raster.rasterizerDiscardEnable = false;
+    raster.depthBiasEnable       = (m_desc.depthStencil.depthBias != 0.0f ||
+                                     m_desc.depthStencil.slopeScaledDepthBias != 0.0f);
+    raster.depthBiasClamp        = m_desc.depthStencil.depthBiasClamp;
+    raster.depthBiasConstantFactor = m_desc.depthStencil.depthBias;
+    raster.depthBiasSlopeFactor   = m_desc.depthStencil.slopeScaledDepthBias;
 
     // --- Multisample ---
     vk::PipelineMultisampleStateCreateInfo multisample;

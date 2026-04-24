@@ -200,10 +200,15 @@ void SceneRenderer::createPSOs() {
         edgeDesc.cullMode              = CullMode::None;
         edgeDesc.frontFace             = FrontFace::CounterClockwise;
         edgeDesc.fillMode              = FillMode::Solid;
-        edgeDesc.depthStencil.depthEnable = true;
-        edgeDesc.depthStencil.depthWrite  = false;
-        edgeDesc.depthStencil.depthFunc   = CompareFunc::LessEqual;
+        edgeDesc.depthStencil.depthEnable  = true;
+        edgeDesc.depthStencil.depthWrite   = false;
+        edgeDesc.depthStencil.depthFunc    = CompareFunc::LessEqual;
+        // 深度偏移：边线推前避免 z-fighting
+        edgeDesc.depthStencil.depthBias        = 1.0f;
+        edgeDesc.depthStencil.depthBiasClamp   = 0.0f;
+        edgeDesc.depthStencil.slopeScaledDepthBias = 1.5f;
 
+        using DB = DescriptorBinding;
         edgeDesc.descriptorBindings[0] = {0, 1, DB::kStageVertex | DB::kStageFragment};
         edgeDesc.descriptorBindings[1] = {1, 1, DB::kStageVertex | DB::kStageFragment};
         edgeDesc.descriptorBindings[2] = {2, 1, DB::kStageFragment};

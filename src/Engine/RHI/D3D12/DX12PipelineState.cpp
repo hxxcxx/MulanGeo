@@ -130,9 +130,9 @@ void DX12PipelineState::build(DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat) {
     rasterizer.FillMode              = toDX12FillMode(m_desc.fillMode);
     rasterizer.CullMode              = toDX12CullMode(m_desc.cullMode);
     rasterizer.FrontCounterClockwise = (m_desc.frontFace == FrontFace::CounterClockwise) ? TRUE : FALSE;
-    rasterizer.DepthBias             = D3D12_DEFAULT_DEPTH_BIAS;
-    rasterizer.DepthBiasClamp        = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-    rasterizer.SlopeScaledDepthBias  = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+    rasterizer.DepthBias             = static_cast<INT>(m_desc.depthStencil.depthBias);
+    rasterizer.DepthBiasClamp        = m_desc.depthStencil.depthBiasClamp;
+    rasterizer.SlopeScaledDepthBias  = m_desc.depthStencil.slopeScaledDepthBias;
     rasterizer.DepthClipEnable       = TRUE;
     rasterizer.MultisampleEnable     = FALSE;
     rasterizer.AntialiasedLineEnable = FALSE;
