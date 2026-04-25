@@ -14,6 +14,7 @@
 #pragma once
 
 #include "Texture.h"
+#include "RenderTypes.h"
 
 #include <array>
 #include <cstdint>
@@ -61,6 +62,38 @@ public:
 
     /// 结束 render pass
     virtual void endRenderPass(CommandList* cmd) = 0;
+
+    /// 构建 RenderPassBeginInfo（供 CommandList::beginRenderPass 使用）
+    RenderPassBeginInfo renderPassBeginInfo() {
+        RenderPassBeginInfo info;
+        auto* color = colorTexture();
+        if (color) {
+            info.colorAttachments[0].target     = color;
+            info.colorAttachments[0].loadAction  = LoadAction::Clear;
+            info.colorAttachments[0].storeAction = StoreAction::Store;
+            info.colorCount = 1;
+        }
+        auto* depth = depthTexture();
+        if (depth) {
+            info.depthAttachment.target     = depth;
+            info.depthAttachment.loadAction  = LoadAction::Clear;
+            info.depthAttachment.storeAction = StoreAction::Store;
+        }
+        auto& cc = desc().clearColor;
+        info.clearColor[0] = cc[0];
+        info.clearColor[1] = cc[1];
+        info.clearColor[2] = cc[2];
+        info.clearColor[3] = cc[3];
+        info.clearDepth    = desc().clearDepth;
+        info.presentSource = false;
+        info.width         = desc().width;
+        info.height        = desc().height;
+        info.nativeHandle  = nativeRenderPassHandle();
+        return info;
+    }
+
+    /// 后端特定句柄（如 GL 的 FBO），默认返回 0
+    virtual uint64_t nativeRenderPassHandle() const { return 0; }
 
     // 便捷查询
     uint32_t width()  const { return desc().width; }

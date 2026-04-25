@@ -174,9 +174,9 @@ void EngineView::renderFrame() {
 
     // --- begin render pass ---
     if (m_renderTarget) {
-        m_renderTarget->beginRenderPass(cmd);
+        cmd->beginRenderPass(m_renderTarget->renderPassBeginInfo());
     } else {
-        m_swapchain->beginRenderPass(cmd);
+        cmd->beginRenderPass(m_swapchain->renderPassBeginInfo());
     }
 
     ScissorRect sc;
@@ -190,11 +190,7 @@ void EngineView::renderFrame() {
     m_sceneRenderer->render(m_renderQueue, m_camera, cmd, m_lightEnv);
 
     // --- end render pass ---
-    if (m_renderTarget) {
-        m_renderTarget->endRenderPass(cmd);
-    } else {
-        m_swapchain->endRenderPass(cmd);
-    }
+    cmd->endRenderPass();
 
     cmd->end();
 

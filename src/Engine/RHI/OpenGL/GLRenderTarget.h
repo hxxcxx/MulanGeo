@@ -35,6 +35,8 @@ public:
 
     bool isValid() const { return m_fbo != 0; }
 
+    uint64_t nativeRenderPassHandle() const override { return m_fbo; }
+
 private:
     void createResources();
     void destroyResources();
