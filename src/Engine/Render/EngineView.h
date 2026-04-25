@@ -18,7 +18,7 @@
 #include "../RHI/SwapChain.h"
 #include "../RHI/RenderTarget.h"
 #include "../RHI/Buffer.h"
-#include "../Scene/Camera.h"
+#include "../Scene/Camera/Camera.h"
 #include "../Scene/Scene.h"
 #include "../Scene/CullVisitor.h"
 #include "../Interaction/InputEvent.h"

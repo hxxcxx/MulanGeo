@@ -17,7 +17,7 @@
 #include "GeometryNode.h"
 #include "Frustum.h"
 #include "../Render/RenderGeometry.h"
-#include "../Scene/Camera.h"
+#include "Camera/Camera.h"
 #include "../RHI/Device.h"
 
 #include <cstdint>

@@ -1,35 +1,32 @@
 /**
  * @file Camera.h
- * @brief 双模式轨道相机 — Turntable + Trackball
+ * @brief 相机策略模式托管类 — 持有 TurntableRotation / TrackballRotation 实现
  *
- * 支持两种旋转模式：
- *   1. Turntable：yaw/pitch 角度驱动，Z-up 约束，适合机械类查看（有上方向约束）
- *   2. Trackball：四元数驱动，自由旋转无死角，适合任意方向查看（默认）
+ * 职责：
+ *  - 投影参数（fov、near/far、ortho）
+ *  - 轨道参数（target、distance）
+ *  - pan / zoom / fitToBox 等与旋转无关的操作
+ *  - 旋转操作全部委托给当前激活的 RotationMode
  *
- * 两种模式共享：target、distance、投影参数、pan、zoom 逻辑。
- * 切换模式时自动同步状态（Turntable→Trackball / Trackball→Turntable）。
- *
+ * 两种模式的旋转状态完全独立，切换时不做有损转换。
  * Z-up 坐标系（CAD 惯例）。
  *
  * @author hxxcxx
- * @date 2026-04-20
+ * @date 2026-04-25
  */
 
 #pragma once
 
-#include <cmath>
+#include <cstdint>
 
-#include "../Math/Math.h"
-#include "../Math/AABB.h"
-#include "Frustum.h"
+#include "../../Math/Math.h"
+#include "../../Math/AABB.h"
+#include "../Frustum.h"
+#include "RotationMode.h"
+#include "TurntableRotation.h"
+#include "TrackballRotation.h"
 
 namespace MulanGeo::Engine {
-
-namespace detail {
-constexpr double kPi = 3.14159265358979323846;
-}
-
-struct AABB;
 
 /// 相机旋转模式
 enum class CameraMode : uint8_t {
@@ -39,7 +36,7 @@ enum class CameraMode : uint8_t {
 
 class Camera {
 public:
-    Camera() = default;
+    Camera();
 
     // ==================== 模式控制 ====================
 
@@ -80,41 +77,43 @@ public:
     void setOrthoSize(double s) { m_orthoSize = s; }
 
     // Turntable 专用
-    double yaw()   const { return m_yaw; }
-    double pitch() const { return m_pitch; }
-    void setYawPitch(double yaw, double pitch);
+    double yaw()   const { return m_turntable.yaw(); }
+    double pitch() const { return m_turntable.pitch(); }
+    void setYawPitch(double yaw, double pitch) { m_turntable.setYawPitch(yaw, pitch); }
 
     // Trackball 专用
-    const Quat& rotation() const { return m_rotation; }
-    void setRotation(const Quat& q) { m_rotation = glm::normalize(q); }
+    const Quat& rotation() const { return m_trackball.rotation(); }
+    void setRotation(const Quat& q) { m_trackball.setRotation(q); }
 
     // ==================== 交互 ====================
 
-    /// Turntable: delta-based orbit
+    /// Turntable: delta-based orbit；Trackball: 四元数 delta 旋转
     void orbitDelta(double dx, double dy);
 
-    /// Trackball arcball: begin / move / end lifecycle
-    void beginOrbit(int x, int y);
-    void orbitToPoint(int x, int y);
-    void endOrbit();
+    /// 兼容接口，等效 orbitDelta
+    void orbit(double dx, double dy) { orbitDelta(dx, dy); }
 
-    /// Legacy orbit interface — dispatches to orbitDelta (Turntable) or arcball (Trackball)
-    void orbit(double dx, double dy);
+    /// Trackball arcball: 开始旋转
+    void beginOrbit(int x, int y);
+    /// Trackball arcball: 旋转到指定屏幕坐标
+    void orbitToPoint(int x, int y);
+    /// Trackball arcball: 结束旋转
+    void endOrbit();
 
     void pan(double dx, double dy);
     void zoom(double delta);
-
     void fitToBox(const AABB& box, double padding = 1.2);
 
     // ==================== 速度参数 ====================
 
-    void setOrbitSpeed(double s)  { m_orbitSpeed = s; }
-    void setPanSpeed(double s)    { m_panSpeed = s; }
-    void setZoomSpeed(double s)   { m_zoomSpeed = s; }
+    void setOrbitSpeed(double s);
+    double orbitSpeed() const;
 
-    double orbitSpeed() const { return m_orbitSpeed; }
-    double panSpeed()   const { return m_panSpeed; }
-    double zoomSpeed()  const { return m_zoomSpeed; }
+    void setPanSpeed(double s)   { m_panSpeed = s; }
+    void setZoomSpeed(double s)  { m_zoomSpeed = s; }
+
+    double panSpeed()  const { return m_panSpeed; }
+    double zoomSpeed() const { return m_zoomSpeed; }
 
     // ==================== 矩阵计算 ====================
 
@@ -125,68 +124,35 @@ public:
     Mat4 rotationMatrix() const;
     Frustum frustum() const;
 
-private:
-    // --- Turntable 内部 ---
-    Vec3 turntableForward() const;
-    Vec3 turntableRight() const;
-    Vec3 turntableUp() const;
+    // ==================== 方向向量 ====================
 
-    // --- Trackball 内部 ---
-    Vec3 trackballForward() const;
-    Vec3 trackballRight() const;
-    Vec3 trackballUp() const;
-
-    // --- 通用方向（根据模式分发）---
     Vec3 forward() const;
     Vec3 right() const;
     Vec3 up() const;
 
-    // === 状态 ===
-
+private:
     CameraMode m_mode = CameraMode::Trackball;
+
+    TurntableRotation m_turntable;
+    TrackballRotation m_trackball;
+    RotationMode* m_active = &m_trackball;   ///< 指向当前激活的旋转模式
 
     Vec3   m_target   = {0, 0, 0};
     double m_distance = 10.0;
 
-    // Turntable 参数（Z-up 球面坐标）
-    double m_yaw   = detail::kPi * 0.25;
-    double m_pitch = detail::kPi * 0.33;
-
-    // Trackball 参数（四元数）
-    Quat m_rotation = initTrackballRotation();
-
-    // Arcball 状态
-    Vec3  m_arcballPrev = {0, 0, 0};   ///< 上一帧球面投影点
-    bool  m_arcballActive = false;
-
-    /// 将屏幕坐标映射到虚拟球面上的单位向量
-    Vec3 arcballProject(int x, int y) const;
-
-    static Quat initTrackballRotation() {
-        constexpr double pi = 3.14159265358979323846;
-        Quat qYaw   = glm::angleAxis(pi * 0.25 - pi * 0.5, Vec3{0, 0, 1});
-        Quat qPitch = glm::angleAxis(pi * 0.33, Vec3{1, 0, 0});
-        return glm::normalize(qYaw * qPitch);
-    }
-
     // 投影参数
     int    m_width    = 800;
     int    m_height   = 600;
-    double m_fovY     = detail::kPi / 4.0;
+    double m_fovY     = 3.14159265358979323846 / 4.0;
     double m_nearZ    = 0.1;
     double m_farZ     = 1000.0;
     bool   m_ortho    = true;
     double m_orthoSize = 5.0;
 
     // 交互速度
-    double m_orbitSpeed  = 0.005;
     double m_panSpeed    = 0.003;
     double m_zoomSpeed   = 1.08;
     double m_minDistance = 0.001;
-
-    static constexpr double kPi_      = 3.14159265358979323846;
-    static constexpr double kMaxPitch =  kPi_ * 0.5 - 0.01;
-    static constexpr double kMinPitch = -kPi_ * 0.5 + 0.01;
 };
 
 } // namespace MulanGeo::Engine

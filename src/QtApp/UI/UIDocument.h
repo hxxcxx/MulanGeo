@@ -17,7 +17,7 @@
 #include <MulanGeo/Document/Document.h>
 #include <MulanGeo/Engine/Scene/Scene.h>
 #include <MulanGeo/Engine/Render/RenderGeometry.h>
-#include <MulanGeo/Engine/Scene/Camera.h>
+#include <MulanGeo/Engine/Scene/Camera/Camera.h>
 #include <MulanGeo/Engine/Math/Math.h>
 #include <MulanGeo/Engine/Math/AABB.h>
 

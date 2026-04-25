@@ -7,7 +7,9 @@ add_library(Engine STATIC
     Scene/Scene.cpp
     Scene/GeometryNode.cpp
     Scene/Frustum.cpp
-    Scene/Camera.cpp
+    Scene/Camera/Camera.cpp
+    Scene/Camera/TurntableRotation.cpp
+    Scene/Camera/TrackballRotation.cpp
     Render/SceneRenderer.cpp
     Render/EngineView.cpp
     Render/TextureLoader.cpp

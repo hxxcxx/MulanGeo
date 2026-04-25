@@ -15,7 +15,7 @@
 #include "../RHI/VertexLayout.h"
 #include "../RHI/SwapChain.h"
 #include "../RHI/RenderTarget.h"
-#include "../Scene/Camera.h"
+#include "../Scene/Camera/Camera.h"
 #include "RenderGeometry.h"
 #include "LightEnvironment.h"
 #include "Material/Material.h"

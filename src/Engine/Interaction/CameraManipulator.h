@@ -14,7 +14,7 @@
 #pragma once
 
 #include "Operator.h"
-#include "../Scene/Camera.h"
+#include "../Scene/Camera/Camera.h"
 
 namespace MulanGeo::Engine {
 
