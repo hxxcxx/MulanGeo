@@ -45,7 +45,7 @@ struct RenderPassAttachmentInfo {
 };
 
 // ============================================================
-// RenderPass 开始信息（Stage 3: CommandList::beginRenderPass 参数）
+// CommandList::beginRenderPass 的参数
 // ============================================================
 
 struct RenderPassBeginInfo {

@@ -303,7 +303,7 @@ void VKCommandList::bindDescriptorSet(vk::PipelineLayout layout, vk::DescriptorS
 }
 
 // ============================================================
-// Stage 3: RHI beginRenderPass / endRenderPass
+// RHI beginRenderPass / endRenderPass
 // ============================================================
 
 void VKCommandList::beginRenderPass(const RenderPassBeginInfo& info) {

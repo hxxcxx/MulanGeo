@@ -89,7 +89,7 @@ public:
                            float clearDepth = 1.0f);
     void endRenderPass() override;
 
-    // --- RenderPass (Stage 3 RHI override) ---
+    // --- RenderPass (RHI override) ---
     void beginRenderPass(const RenderPassBeginInfo& info) override;
 
     vk::PipelineLayout currentLayout() const { return m_currentLayout; }

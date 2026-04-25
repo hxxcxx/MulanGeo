@@ -120,7 +120,7 @@ public:
     /// 清除模板缓冲区
     void clearStencil(uint8_t stencil) override;
 
-    // --- RenderPass (Stage 3) ---
+    // --- RenderPass ---
     void beginRenderPass(const RenderPassBeginInfo& info) override;
     void endRenderPass() override;
 

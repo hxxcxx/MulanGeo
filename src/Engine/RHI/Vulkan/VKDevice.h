@@ -105,7 +105,7 @@ public:
         vk::AttachmentStoreOp colorStoreOp = vk::AttachmentStoreOp::eStore,
         vk::ImageLayout colorFinalLayout = vk::ImageLayout::eColorAttachmentOptimal);
 
-    // --- Framebuffer Cache (Stage 3) ---
+    // --- Framebuffer Cache ---
     vk::Framebuffer getOrCreateFramebuffer(
         vk::RenderPass renderPass,
         std::span<const vk::ImageView> attachments,
@@ -172,7 +172,7 @@ private:
     };
     std::unordered_map<RenderPassKey, vk::RenderPass, RenderPassKeyHash> m_renderPassCache;
 
-    // --- Framebuffer Cache (Stage 3) ---
+    // --- Framebuffer Cache ---
     struct FramebufferKey {
         vk::RenderPass                    renderPass = nullptr;
         std::array<vk::ImageView, 9>      attachments{}; // 8 color + 1 depth

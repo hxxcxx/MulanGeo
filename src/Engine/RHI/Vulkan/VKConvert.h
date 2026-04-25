@@ -153,7 +153,7 @@ inline vk::Format vertexFormatToVk(VertexFormat fmt) {
 }
 
 // ============================================================
-// RenderPass 转换 (Stage 3)
+// LoadAction / StoreAction → VkAttachmentLoadOp / VkAttachmentStoreOp
 // ============================================================
 
 inline vk::AttachmentLoadOp toVkLoadOp(LoadAction action) {

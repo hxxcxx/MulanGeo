@@ -190,7 +190,7 @@ void DX11CommandList::clearStencil(uint8_t stencil)
 }
 
 // ============================================================
-// Stage 3: RenderPass
+// RenderPass
 // ============================================================
 
 void DX11CommandList::beginRenderPass(const RenderPassBeginInfo& info) {

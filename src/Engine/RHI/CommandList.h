@@ -82,7 +82,7 @@ public:
     /// 将渲染目标 color 纹理复制到 staging buffer（用于 CPU 回读）
     virtual void copyTextureToBuffer(Texture* src, Buffer* dst) { (void)src; (void)dst; }
 
-    // --- RenderPass (Stage 3) ---
+    // --- RenderPass ---
 
     virtual void beginRenderPass(const RenderPassBeginInfo& info) { (void)info; }
     virtual void endRenderPass() {}

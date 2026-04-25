@@ -204,7 +204,7 @@ void DX12CommandList::clearStencil(uint8_t stencil) {
 }
 
 // ============================================================
-// Stage 3: RenderPass
+// RenderPass
 // ============================================================
 
 void DX12CommandList::beginRenderPass(const RenderPassBeginInfo& info) {

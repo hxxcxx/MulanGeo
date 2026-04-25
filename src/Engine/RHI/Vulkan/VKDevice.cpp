@@ -343,7 +343,7 @@ void VKDevice::initFrameContexts(uint32_t count) {
 }
 
 // ============================================================
-// Framebuffer Cache (Stage 3)
+// Framebuffer Cache
 // ============================================================
 
 size_t VKDevice::FramebufferKeyHash::operator()(const FramebufferKey& k) const noexcept {

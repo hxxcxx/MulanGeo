@@ -52,7 +52,7 @@ public:
     void clearDepth(float depth) override;
     void clearStencil(uint8_t stencil) override;
 
-    // --- RenderPass (Stage 3) ---
+    // --- RenderPass ---
     void beginRenderPass(const RenderPassBeginInfo& info) override;
     void endRenderPass() override;
 
@@ -65,8 +65,8 @@ private:
     ComPtr<ID3D12GraphicsCommandList> m_cmdList;
     bool m_ownsCmdList = true;  // 是否在析构时释放
     uint32_t m_cachedStride = 0;  // 从 PSO vertexLayout 缓存的 stride
-    bool m_rpPresentSource = false; // Stage 3: endRenderPass barrier 方向
-    DX12Texture* m_rpColorTex = nullptr; // Stage 3: 当前 render pass 的 color texture
+    bool m_rpPresentSource = false; // endRenderPass 中决定 barrier 目标状态（PRESENT vs SRV）
+    DX12Texture* m_rpColorTex = nullptr; // 当前 render pass 的颜色附件
 };
 
 } // namespace MulanGeo::Engine
