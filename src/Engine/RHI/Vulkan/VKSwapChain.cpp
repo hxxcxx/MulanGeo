@@ -11,8 +11,6 @@ VKSwapChain::VKSwapChain(const SwapChainDesc& desc, const InitParams& params,
     , m_renderConfig(renderConfig)
 {
     createSwapChain();
-    createRenderPass();
-    createFramebuffers();
 }
 
 VKSwapChain::~VKSwapChain() {
@@ -48,23 +46,6 @@ void VKSwapChain::present() {
     m_params.presentQueue.presentKHR(&presentInfo);
 }
 
-void VKSwapChain::beginRenderPass(CommandList* cmd) {
-    auto* vkCmd = static_cast<VKCommandList*>(cmd);
-    auto& cc = m_renderConfig.clearColor;
-    vkCmd->beginVkRenderPass(
-        m_renderPass,
-        m_framebuffers[m_currentImageIndex],
-        m_swapchainExtent.width,
-        m_swapchainExtent.height,
-        { cc[0], cc[1], cc[2], cc[3] },
-        1.0f);
-}
-
-void VKSwapChain::endRenderPass(CommandList* cmd) {
-    auto* vkCmd = static_cast<VKCommandList*>(cmd);
-    vkCmd->endRenderPass();
-}
-
 void VKSwapChain::resize(uint32_t width, uint32_t height) {
     m_params.device.waitIdle();
     cleanup();
@@ -73,8 +54,6 @@ void VKSwapChain::resize(uint32_t width, uint32_t height) {
     m_desc.height = height;
 
     createSwapChain();
-    createRenderPass();
-    createFramebuffers();
 }
 
 // --------------------------------------------------------
@@ -176,88 +155,13 @@ void VKSwapChain::createSwapChain() {
     m_depthTexture = std::make_unique<VKTexture>(depthDesc, m_params.device, m_params.allocator);
 }
 
-void VKSwapChain::createRenderPass() {
-    vk::AttachmentDescription colorAttachment;
-    colorAttachment.format         = m_swapchainFormat;
-    colorAttachment.samples        = vk::SampleCountFlagBits::e1;
-    colorAttachment.loadOp         = vk::AttachmentLoadOp::eClear;
-    colorAttachment.storeOp        = vk::AttachmentStoreOp::eStore;
-    colorAttachment.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-    colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-    colorAttachment.initialLayout  = vk::ImageLayout::eUndefined;
-    colorAttachment.finalLayout    = vk::ImageLayout::ePresentSrcKHR;
-
-    vk::AttachmentDescription depthAttachment;
-    depthAttachment.format         = toVkFormat(m_desc.depthFormat);
-    depthAttachment.samples        = vk::SampleCountFlagBits::e1;
-    depthAttachment.loadOp         = vk::AttachmentLoadOp::eClear;
-    depthAttachment.storeOp        = vk::AttachmentStoreOp::eDontCare;
-    depthAttachment.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-    depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-    depthAttachment.initialLayout  = vk::ImageLayout::eUndefined;
-    depthAttachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-    vk::AttachmentReference colorRef;
-    colorRef.attachment = 0;
-    colorRef.layout     = vk::ImageLayout::eColorAttachmentOptimal;
-
-    vk::AttachmentReference depthRef;
-    depthRef.attachment = 1;
-    depthRef.layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-    vk::SubpassDescription subpass;
-    subpass.pipelineBindPoint    = vk::PipelineBindPoint::eGraphics;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments    = &colorRef;
-    subpass.pDepthStencilAttachment = &depthRef;
-
-    std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-
-    vk::RenderPassCreateInfo rpCI;
-    rpCI.attachmentCount = static_cast<uint32_t>(attachments.size());
-    rpCI.pAttachments    = attachments.data();
-    rpCI.subpassCount    = 1;
-    rpCI.pSubpasses      = &subpass;
-
-    m_renderPass = m_params.device.createRenderPass(rpCI);
-}
-
-void VKSwapChain::createFramebuffers() {
-    m_framebuffers.resize(m_imageViews.size());
-    for (size_t i = 0; i < m_imageViews.size(); ++i) {
-        vk::ImageView attachments[] = {
-            m_imageViews[i],
-            static_cast<VKTexture*>(m_depthTexture.get())->view()
-        };
-
-        vk::FramebufferCreateInfo fbCI;
-        fbCI.renderPass       = m_renderPass;
-        fbCI.attachmentCount  = 2;
-        fbCI.pAttachments     = attachments;
-        fbCI.width            = m_swapchainExtent.width;
-        fbCI.height           = m_swapchainExtent.height;
-        fbCI.layers           = 1;
-
-        m_framebuffers[i] = m_params.device.createFramebuffer(fbCI);
-    }
-}
-
 void VKSwapChain::cleanup() {
-    for (auto& fb : m_framebuffers)
-        m_params.device.destroyFramebuffer(fb);
-    m_framebuffers.clear();
-
     for (auto& iv : m_imageViews)
         m_params.device.destroyImageView(iv);
     m_imageViews.clear();
 
     m_backBuffers.clear();
     m_depthTexture.reset();
-
-    if (m_renderPass) {
-        m_params.device.destroyRenderPass(m_renderPass);
-        m_renderPass = nullptr;
-    }
 
     if (m_swapchain) {
         m_params.device.destroySwapchainKHR(m_swapchain);

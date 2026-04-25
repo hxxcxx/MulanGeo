@@ -27,8 +27,6 @@ public:
     Texture* depthTexture() override { return m_depthTexture.get(); }
 
     void resize(uint32_t width, uint32_t height) override;
-    void beginRenderPass(CommandList* cmd) override;
-    void endRenderPass(CommandList* cmd) override;
 
     /// FBO 句柄（供外部 blit 使用）
     GLuint fbo() const { return m_fbo; }

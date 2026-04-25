@@ -55,14 +55,6 @@ public:
     // 窗口大小变化时调用
     virtual void resize(uint32_t width, uint32_t height) = 0;
 
-    // --- RenderPass（后端实现，VK 有真实的 renderPass，GL 是 clear + noop）---
-
-    /// 开始 render pass：清除 color + depth，绑定 framebuffer
-    virtual void beginRenderPass(CommandList* cmd) = 0;
-
-    /// 结束 render pass
-    virtual void endRenderPass(CommandList* cmd) = 0;
-
     /// 构建 RenderPassBeginInfo（供 CommandList::beginRenderPass 使用）
     RenderPassBeginInfo renderPassBeginInfo() const {
         RenderPassBeginInfo info;

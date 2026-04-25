@@ -34,9 +34,6 @@ public:
     void present() override;
     void resize(uint32_t width, uint32_t height) override;
 
-    void beginRenderPass(CommandList* cmd) override;
-    void endRenderPass(CommandList* cmd) override;
-
     uint32_t currentFrameIndex() const { return m_frameIndex; }
     DXGI_FORMAT rtvFormat() const { return toDXGIFormat(m_desc.format); }
 

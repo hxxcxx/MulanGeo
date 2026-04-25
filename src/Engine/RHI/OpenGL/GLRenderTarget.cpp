@@ -173,39 +173,4 @@ void GLRenderTarget::resize(uint32_t width, uint32_t height) {
 }
 
 // ============================================================
-// RenderPass
-// ============================================================
-
-void GLRenderTarget::beginRenderPass(CommandList* /*cmd*/) {
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    glViewport(0, 0,
-               static_cast<GLsizei>(m_desc.width),
-               static_cast<GLsizei>(m_desc.height));
-
-    // 确保 writemask 全开，否则 glClear 可能不写深度
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDepthMask(GL_TRUE);
-
-    glClearColor(m_desc.clearColor[0], m_desc.clearColor[1],
-                 m_desc.clearColor[2], m_desc.clearColor[3]);
-    glClearDepthf(m_desc.clearDepth);
-
-    GLbitfield clearMask = GL_COLOR_BUFFER_BIT;
-    if (m_desc.hasDepth) {
-        clearMask |= GL_DEPTH_BUFFER_BIT;
-
-        // 如果是带模板的深度格式，同时清除模板
-        if (m_desc.depthFormat == TextureFormat::D24_UNorm_S8_UInt ||
-            m_desc.depthFormat == TextureFormat::D32_Float_S8X24_UInt) {
-            glClearStencil(0);
-            clearMask |= GL_STENCIL_BUFFER_BIT;
-        }
-    }
-    glClear(clearMask);
-}
-
-void GLRenderTarget::endRenderPass(CommandList* /*cmd*/) {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 } // namespace MulanGeo::Engine

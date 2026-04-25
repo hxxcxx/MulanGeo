@@ -126,49 +126,4 @@ void DX12SwapChain::resize(uint32_t width, uint32_t height) {
     createBackBuffers();
 }
 
-void DX12SwapChain::beginRenderPass(CommandList* cmd) {
-    auto* dx12Cmd = static_cast<DX12CommandList*>(cmd);
-    auto* cl = dx12Cmd->commandList();
-
-    m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-
-    // Transition back buffer to RT
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource   = m_backBuffers[m_frameIndex].Get();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    cl->ResourceBarrier(1, &barrier);
-
-    // RTV + DSV handles
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};
-    rtvHandle.ptr = m_rtvHeap->heap()->GetCPUDescriptorHandleForHeapStart().ptr
-                  + static_cast<uint64_t>(m_frameIndex) * m_rtvHeap->descriptorSize();
-
-    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
-    dsvHandle.ptr = m_dsvHeap->heap()->GetCPUDescriptorHandleForHeapStart().ptr;
-
-    // Clear
-    cl->ClearRenderTargetView(rtvHandle, m_clearColor, 0, nullptr);
-    cl->ClearDepthStencilView(dsvHandle,
-                               D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                               1.0f, 0, 0, nullptr);
-
-    // Set render targets
-    cl->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
-}
-
-void DX12SwapChain::endRenderPass(CommandList* cmd) {
-    auto* dx12Cmd = static_cast<DX12CommandList*>(cmd);
-    auto* cl = dx12Cmd->commandList();
-
-    // Transition back buffer to present
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource   = m_backBuffers[m_frameIndex].Get();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
-    cl->ResourceBarrier(1, &barrier);
-}
-
 } // namespace MulanGeo::Engine

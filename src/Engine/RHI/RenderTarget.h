@@ -57,12 +57,6 @@ public:
     /// 大小变化时重建资源
     virtual void resize(uint32_t width, uint32_t height) = 0;
 
-    /// 开始 render pass（清除 + 绑定 framebuffer）
-    virtual void beginRenderPass(CommandList* cmd) = 0;
-
-    /// 结束 render pass
-    virtual void endRenderPass(CommandList* cmd) = 0;
-
     /// 构建 RenderPassBeginInfo（供 CommandList::beginRenderPass 使用）
     RenderPassBeginInfo renderPassBeginInfo() {
         RenderPassBeginInfo info;

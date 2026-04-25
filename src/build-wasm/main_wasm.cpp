@@ -21,8 +21,10 @@
 // Engine headers
 #include "RHI/Device.h"
 #include "RHI/SwapChain.h"
+#include "RHI/CommandList.h"
 #include "RHI/OpenGL/GLDevice.h"
 #include "RHI/OpenGL/GLSwapChain.h"
+#include "RHI/OpenGL/GLCommandList.h"
 #include "Scene/Camera.h"
 #include "Scene/Scene.h"
 #include "Render/SceneRenderer.h"
@@ -37,6 +39,7 @@ namespace {
 struct WasmApp {
     std::shared_ptr<GLDevice>      device;
     std::unique_ptr<GLSwapChain>   swapChain;
+    std::unique_ptr<GLCommandList>  cmdList;
     std::unique_ptr<SceneRenderer> renderer;
 
     int canvasWidth  = 800;
@@ -101,13 +104,13 @@ void mainLoop() {
     }
 
     // ── 渲染一帧 ──
-    if (g_app.swapChain) {
-        g_app.swapChain->beginRenderPass(nullptr);
+    if (g_app.swapChain && g_app.cmdList) {
+        g_app.cmdList->beginRenderPass(g_app.swapChain->renderPassBeginInfo());
 
         // TODO: 在此处通过 SceneRenderer 渲染场景
         // g_app.renderer->render(scene, camera, g_app.swapChain.get());
 
-        g_app.swapChain->endRenderPass(nullptr);
+        g_app.cmdList->endRenderPass();
         g_app.swapChain->present();
     }
 }
@@ -163,6 +166,9 @@ int main() {
     renderConfig.clearColor[3] = 1.0f;
 
     g_app.swapChain = std::make_unique<GLSwapChain>(scDesc, initParams, renderConfig);
+
+    // 创建 GL 命令列表
+    g_app.cmdList = std::make_unique<GLCommandList>();
 
     // 5. 创建场景渲染器
     g_app.renderer = std::make_unique<SceneRenderer>(g_app.device.get());

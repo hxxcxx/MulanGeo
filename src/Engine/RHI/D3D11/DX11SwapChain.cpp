@@ -93,28 +93,4 @@ void DX11SwapChain::resize(uint32_t width, uint32_t height)
     createBackBuffer();
 }
 
-void DX11SwapChain::beginRenderPass(CommandList* cmd)
-{
-    auto* dx11Cmd = static_cast<DX11CommandList*>(cmd);
-    auto* ctx = dx11Cmd->context();
-
-    ID3D11RenderTargetView* rtv = m_backBufferTexture->rtv();
-    ID3D11DepthStencilView* dsv = m_depthTexture->dsv();
-
-    fprintf(stderr, "[DEBUG] SwapChain::beginRenderPass: rtv=%p dsv=%p size=%ux%u\n",
-            (void*)rtv, (void*)dsv, m_desc.width, m_desc.height);
-    fflush(stderr);
-
-    ctx->OMSetRenderTargets(1, &rtv, dsv);
-
-    ctx->ClearRenderTargetView(rtv, m_renderConfig.clearColor);
-    ctx->ClearDepthStencilView(dsv,
-        D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-}
-
-void DX11SwapChain::endRenderPass(CommandList*)
-{
-    // D3D11: no explicit end — render targets remain bound until changed
-}
-
 } // namespace MulanGeo::Engine

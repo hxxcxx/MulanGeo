@@ -54,22 +54,15 @@ public:
     void presentWithSemaphores(vk::Semaphore renderFinished);
     void present() override;
 
-    void beginRenderPass(CommandList* cmd) override;
-    void endRenderPass(CommandList* cmd) override;
-
     void resize(uint32_t width, uint32_t height) override;
 
     // --- Vulkan 特有 ---
-    vk::RenderPass   renderPass()         const { return m_renderPass; }
-    vk::Framebuffer  currentFramebuffer() const { return m_framebuffers[m_currentImageIndex]; }
-    uint32_t         currentImageIndex()  const { return m_currentImageIndex; }
-    uint32_t         imageCount()         const { return static_cast<uint32_t>(m_swapchainImages.size()); }
-    vk::Extent2D     extent()             const { return m_swapchainExtent; }
+    uint32_t currentImageIndex()  const { return m_currentImageIndex; }
+    uint32_t imageCount()         const { return static_cast<uint32_t>(m_swapchainImages.size()); }
+    vk::Extent2D extent()        const { return m_swapchainExtent; }
 
 private:
     void createSwapChain();
-    void createRenderPass();
-    void createFramebuffers();
     void cleanup();
 
     SwapChainDesc    m_desc;
@@ -81,9 +74,6 @@ private:
     std::vector<vk::ImageView> m_imageViews;
     vk::Format       m_swapchainFormat;
     vk::Extent2D     m_swapchainExtent;
-
-    vk::RenderPass   m_renderPass;
-    std::vector<vk::Framebuffer> m_framebuffers;
 
     std::unique_ptr<VKTexture> m_depthTexture;
     std::vector<std::unique_ptr<VKTexture>> m_backBuffers;

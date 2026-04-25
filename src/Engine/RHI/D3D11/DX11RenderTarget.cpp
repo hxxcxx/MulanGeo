@@ -41,28 +41,4 @@ void DX11RenderTarget::resize(uint32_t width, uint32_t height)
     createResources();
 }
 
-void DX11RenderTarget::beginRenderPass(CommandList* cmd)
-{
-    auto* dx11Cmd = static_cast<DX11CommandList*>(cmd);
-    auto* ctx = dx11Cmd->context();
-
-    ID3D11RenderTargetView* rtv = m_colorTexture->rtv();
-    ID3D11DepthStencilView* dsv = m_depthTexture ? m_depthTexture->dsv() : nullptr;
-
-    ctx->OMSetRenderTargets(1, &rtv, dsv);
-    ctx->ClearRenderTargetView(rtv, m_desc.clearColor);
-
-    if (dsv)
-    {
-        ctx->ClearDepthStencilView(dsv,
-            D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-            m_desc.clearDepth, 0);
-    }
-}
-
-void DX11RenderTarget::endRenderPass(CommandList*)
-{
-    // D3D11: render targets remain bound — no explicit end
-}
-
 } // namespace MulanGeo::Engine

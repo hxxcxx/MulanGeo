@@ -28,8 +28,6 @@ public:
     Texture* depthTexture() override { return m_depthTexture.get(); }
 
     void resize(uint32_t width, uint32_t height) override;
-    void beginRenderPass(CommandList* cmd) override;
-    void endRenderPass(CommandList* cmd) override;
 
     // --- Vulkan 特有 ---
     vk::RenderPass  renderPass()  const { return m_renderPass; }

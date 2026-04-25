@@ -51,39 +51,4 @@ void GLSwapChain::resize(uint32_t width, uint32_t height) {
     glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
 }
 
-// ----------------------------------------------------------------
-// beginRenderPass — 绑定默认 FBO，清除缓冲区
-// ----------------------------------------------------------------
-
-void GLSwapChain::beginRenderPass(CommandList* /*cmd*/) {
-    // 绑定默认 Framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0,
-               static_cast<GLsizei>(m_desc.width),
-               static_cast<GLsizei>(m_desc.height));
-
-    // 确保 writemask 全开，否则 glClear 可能不写深度
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDepthMask(GL_TRUE);
-
-    const auto& cc = m_renderConfig.clearColor;
-    glClearColor(cc[0], cc[1], cc[2], cc[3]);
-    glClearDepthf(1.0f);
-
-    GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
-    if (m_renderConfig.stencilBuffer) {
-        glClearStencil(0);
-        clearMask |= GL_STENCIL_BUFFER_BIT;
-    }
-    glClear(clearMask);
-}
-
-// ----------------------------------------------------------------
-// endRenderPass — OpenGL 无 render pass 概念，flush 即可
-// ----------------------------------------------------------------
-
-void GLSwapChain::endRenderPass(CommandList* /*cmd*/) {
-    glFlush();
-}
-
 } // namespace MulanGeo::Engine

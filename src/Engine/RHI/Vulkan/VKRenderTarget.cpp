@@ -28,23 +28,6 @@ void VKRenderTarget::resize(uint32_t width, uint32_t height) {
     createResources();
 }
 
-void VKRenderTarget::beginRenderPass(CommandList* cmd) {
-    auto* vkCmd = static_cast<VKCommandList*>(cmd);
-    vkCmd->beginVkRenderPass(
-        m_renderPass,
-        m_framebuffer,
-        m_desc.width,
-        m_desc.height,
-        { m_desc.clearColor[0], m_desc.clearColor[1],
-          m_desc.clearColor[2], m_desc.clearColor[3] },
-        m_desc.clearDepth);
-}
-
-void VKRenderTarget::endRenderPass(CommandList* cmd) {
-    auto* vkCmd = static_cast<VKCommandList*>(cmd);
-    vkCmd->endRenderPass();
-}
-
 // ============================================================
 // 内部资源创建
 // ============================================================
