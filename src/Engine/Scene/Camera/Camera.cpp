@@ -1,21 +1,50 @@
 #include "Camera.h"
+#include "TurntableRotation.h"
+#include "TrackballRotation.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace MulanGeo::Engine {
 
-Camera::Camera() {
-    m_active = &m_trackball;
+// ============================================================
+// 构造 / 模式切换
+// ============================================================
+
+void Camera::createRotation(CameraMode mode) {
+    if (mode == CameraMode::Turntable) {
+        m_active = std::make_unique<TurntableRotation>();
+    } else {
+        m_active = std::make_unique<TrackballRotation>();
+    }
+}
+
+Camera::Camera(CameraMode initialMode)
+    : m_mode(initialMode)
+{
+    createRotation(initialMode);
 }
 
 void Camera::setMode(CameraMode mode) {
     if (m_mode == mode) return;
     m_mode = mode;
-    m_active = (mode == CameraMode::Trackball)
-        ? static_cast<RotationMode*>(&m_trackball)
-        : static_cast<RotationMode*>(&m_turntable);
+    createRotation(mode);
 }
+
+// ============================================================
+// 模式专用访问
+// ============================================================
+
+double Camera::yaw() const { return m_active->yaw(); }
+double Camera::pitch() const { return m_active->pitch(); }
+void Camera::setYawPitch(double yaw, double pitch) { m_active->setYawPitch(yaw, pitch); }
+
+Quat Camera::rotation() const { return m_active->rotation(); }
+void Camera::setRotation(const Quat& q) { m_active->setRotation(q); }
+
+// ============================================================
+// 交互
+// ============================================================
 
 void Camera::orbitDelta(double dx, double dy) {
     m_active->orbitDelta(dx, dy);
@@ -68,6 +97,10 @@ void Camera::fitToBox(const AABB& box, double padding) {
     m_farZ  = m_distance * 10.0;
 }
 
+// ============================================================
+// 速度参数
+// ============================================================
+
 void Camera::setOrbitSpeed(double s) {
     m_active->setOrbitSpeed(s);
 }
@@ -75,6 +108,10 @@ void Camera::setOrbitSpeed(double s) {
 double Camera::orbitSpeed() const {
     return m_active->orbitSpeed();
 }
+
+// ============================================================
+// 矩阵计算
+// ============================================================
 
 Vec3 Camera::eyePosition() const {
     return m_target - m_active->forward() * m_distance;

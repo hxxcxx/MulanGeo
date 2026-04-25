@@ -27,17 +27,25 @@ public:
 
     void orbitDelta(double dx, double dy) override;
 
+    void beginOrbit(int x, int y, int viewW, int viewH) override;
+    void orbitToPoint(int x, int y, int viewW, int viewH) override;
+    void endOrbit() override;
+
     void setOrbitSpeed(double s) override { m_orbitSpeed = s; }
     double orbitSpeed() const override { return m_orbitSpeed; }
 
-    double yaw()   const { return m_yaw; }
-    double pitch() const { return m_pitch; }
-    void setYawPitch(double yaw, double pitch);
+    double yaw()   const override { return m_yaw; }
+    double pitch() const override { return m_pitch; }
+    void setYawPitch(double yaw, double pitch) override;
 
 private:
     double m_yaw   = kPi * 0.25;
     double m_pitch = kPi * 0.33;
     double m_orbitSpeed = 0.005;
+
+    int  m_orbitPrevX = 0;
+    int  m_orbitPrevY = 0;
+    bool m_orbitDrag  = false;
 
     static constexpr double kPi       = 3.14159265358979323846;
     static constexpr double kMaxPitch =  kPi * 0.5 - 0.01;

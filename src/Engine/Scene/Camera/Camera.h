@@ -1,6 +1,6 @@
 /**
  * @file Camera.h
- * @brief 相机策略模式托管类 — 持有 TurntableRotation / TrackballRotation 实现
+ * @brief 相机策略模式托管类 — 持有 RotationMode 实现，按模式创建
  *
  * 职责：
  *  - 投影参数（fov、near/far、ortho）
@@ -18,13 +18,12 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "../../Math/Math.h"
 #include "../../Math/AABB.h"
 #include "../Frustum.h"
 #include "RotationMode.h"
-#include "TurntableRotation.h"
-#include "TrackballRotation.h"
 
 namespace MulanGeo::Engine {
 
@@ -36,7 +35,8 @@ enum class CameraMode : uint8_t {
 
 class Camera {
 public:
-    Camera();
+    /// @param initialMode 初始旋转模式，缺省为 Trackball
+    explicit Camera(CameraMode initialMode = CameraMode::Trackball);
 
     // ==================== 模式控制 ====================
 
@@ -76,14 +76,19 @@ public:
     double orthoSize() const { return m_orthoSize; }
     void setOrthoSize(double s) { m_orthoSize = s; }
 
-    // Turntable 专用
-    double yaw()   const { return m_turntable.yaw(); }
-    double pitch() const { return m_turntable.pitch(); }
-    void setYawPitch(double yaw, double pitch) { m_turntable.setYawPitch(yaw, pitch); }
+    // ==================== 模式专用访问 ====================
 
-    // Trackball 专用
-    const Quat& rotation() const { return m_trackball.rotation(); }
-    void setRotation(const Quat& q) { m_trackball.setRotation(q); }
+    /// Turntable 专用：yaw 角度（仅在 Turntable 模式下有意义）
+    double yaw()   const;
+    /// Turntable 专用：pitch 角度（仅在 Turntable 模式下有意义）
+    double pitch() const;
+    /// Turntable 专用：设置 yaw/pitch
+    void setYawPitch(double yaw, double pitch);
+
+    /// Trackball 专用：四元数旋转（仅在 Trackball 模式下有意义）
+    Quat rotation() const;
+    /// Trackball 专用：设置四元数旋转
+    void setRotation(const Quat& q);
 
     // ==================== 交互 ====================
 
@@ -131,11 +136,12 @@ public:
     Vec3 up() const;
 
 private:
+    /// 根据模式创建对应的 RotationMode 实例
+    void createRotation(CameraMode mode);
+
     CameraMode m_mode = CameraMode::Trackball;
 
-    TurntableRotation m_turntable;
-    TrackballRotation m_trackball;
-    RotationMode* m_active = &m_trackball;   ///< 指向当前激活的旋转模式
+    std::unique_ptr<RotationMode> m_active;
 
     Vec3   m_target   = {0, 0, 0};
     double m_distance = 10.0;

@@ -40,8 +40,7 @@ public:
         m_lastY = e.y;
         m_dragging = true;
 
-        // 开始 arcball 旋转
-        if (e.isButtonPressed(config.orbitButton) && cam.mode() == CameraMode::Trackball) {
+        if (e.isButtonPressed(config.orbitButton)) {
             cam.beginOrbit(e.x, e.y);
         }
         return true;
@@ -49,9 +48,7 @@ public:
 
     bool onMouseRelease(const InputEvent& e, Camera& cam) override {
         (void)e;
-        if (cam.mode() == CameraMode::Trackball) {
-            cam.endOrbit();
-        }
+        cam.endOrbit();
         m_dragging = false;
         return true;
     }
@@ -68,13 +65,7 @@ public:
 
         // --- 轨道旋转 ---
         if (e.isButtonPressed(config.orbitButton)) {
-            if (cam.mode() == CameraMode::Trackball) {
-                // Arcball：使用绝对坐标
-                cam.orbitToPoint(e.x, e.y);
-            } else {
-                // Turntable：使用增量
-                cam.orbit(static_cast<double>(dx), static_cast<double>(dy));
-            }
+            cam.orbitToPoint(e.x, e.y);
             return true;
         }
 

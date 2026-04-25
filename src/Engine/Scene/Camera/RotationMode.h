@@ -28,12 +28,23 @@ public:
 
     virtual void orbitDelta(double dx, double dy) = 0;
 
-    virtual void beginOrbit(int x, int y, int viewW, int viewH) {}
-    virtual void orbitToPoint(int x, int y, int viewW, int viewH) {}
-    virtual void endOrbit() {}
+    virtual void beginOrbit(int x, int y, int viewW, int viewH) = 0;
+    virtual void orbitToPoint(int x, int y, int viewW, int viewH) = 0;
+    virtual void endOrbit() = 0;
 
     virtual void setOrbitSpeed(double s) = 0;
     virtual double orbitSpeed() const = 0;
+
+    // ==================== 模式专用访问器（默认空实现，子类按需覆盖） ====================
+
+    /// Turntable 专用
+    virtual double yaw()   const { return 0.0; }
+    virtual double pitch() const { return 0.0; }
+    virtual void setYawPitch(double /*yaw*/, double /*pitch*/) {}
+
+    /// Trackball 专用
+    virtual Quat rotation() const { return Quat{1, 0, 0, 0}; }
+    virtual void setRotation(const Quat& /*q*/) {}
 };
 
 } // namespace MulanGeo::Engine

@@ -76,7 +76,7 @@ void TrackballRotation::orbitToPoint(int x, int y, int viewW, int viewH) {
 
     Vec3 curr = arcballProject(x, y, viewW, viewH);
 
-    Vec3 axis = glm::cross(m_arcballPrev, curr);
+    Vec3 axis = glm::cross(curr, m_arcballPrev);
     double axisLen = glm::length(axis);
 
     if (axisLen < 1e-10) {

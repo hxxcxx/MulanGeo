@@ -35,8 +35,8 @@ public:
     void setOrbitSpeed(double s) override { m_arcballSpeed = s; }
     double orbitSpeed() const override { return m_arcballSpeed; }
 
-    const Quat& rotation() const { return m_rotation; }
-    void setRotation(const Quat& q) { m_rotation = glm::normalize(q); }
+    Quat rotation() const override { return m_rotation; }
+    void setRotation(const Quat& q) override { m_rotation = glm::normalize(q); }
 
 private:
     Vec3 arcballProject(int x, int y, int viewW, int viewH) const;
@@ -44,7 +44,7 @@ private:
     Quat   m_rotation;
     Vec3   m_arcballPrev  = {0, 0, 0};
     bool   m_arcballActive = false;
-    double m_arcballSpeed = 1.75;
+    double m_arcballSpeed = 2.25;
 };
 
 } // namespace MulanGeo::Engine
