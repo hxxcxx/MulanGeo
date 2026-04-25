@@ -251,28 +251,40 @@ void VKCommandList::beginRenderPass(vk::RenderPass renderPass, vk::Framebuffer f
 void VKCommandList::bindResources(const BindGroup& group) {
     if (group.count == 0 || !m_allocator) return;
 
+    assert(m_currentDescSetLayout && "bindResources called before setPipelineState");
+    if (!m_currentDescSetLayout) return;
+
     vk::DescriptorSet set = m_allocator->allocate(m_currentDescSetLayout);
 
-    // 每个 entry 独立提交 update，避免数组未初始化问题
+    // 批量提交所有 descriptor writes
+    std::array<vk::DescriptorBufferInfo, BindGroup::kMaxEntries> bufInfos;
+    std::array<vk::DescriptorImageInfo, BindGroup::kMaxEntries>  imgInfos;
+    std::array<vk::WriteDescriptorSet, BindGroup::kMaxEntries>   writes;
+    uint8_t writeCount = 0;
+
     for (uint8_t i = 0; i < group.count; ++i) {
         const auto& e = group.entries[i];
 
         if (e.buffer) {
             auto* vkBuf = static_cast<VKBuffer*>(e.buffer);
-            vk::DescriptorBufferInfo bufInfo(vkBuf->vkBuffer(), e.offset, e.size);
-            vk::WriteDescriptorSet write(set, e.binding, 0, 1,
+            bufInfos[writeCount] = vk::DescriptorBufferInfo(vkBuf->vkBuffer(), e.offset, e.size);
+            writes[writeCount] = vk::WriteDescriptorSet(set, e.binding, 0, 1,
                 vk::DescriptorType::eUniformBuffer,
-                nullptr, &bufInfo, nullptr);
-            m_device.updateDescriptorSets(1, &write, 0, nullptr);
+                nullptr, &bufInfos[writeCount], nullptr);
+            ++writeCount;
         } else if (e.texture) {
             auto* vkTex = static_cast<VKTexture*>(e.texture);
-            vk::DescriptorImageInfo imgInfo(nullptr, vkTex->view(),
+            imgInfos[writeCount] = vk::DescriptorImageInfo(nullptr, vkTex->view(),
                 vk::ImageLayout::eShaderReadOnlyOptimal);
-            vk::WriteDescriptorSet write(set, e.binding, 0, 1,
+            writes[writeCount] = vk::WriteDescriptorSet(set, e.binding, 0, 1,
                 vk::DescriptorType::eSampledImage,
-                &imgInfo, nullptr, nullptr);
-            m_device.updateDescriptorSets(1, &write, 0, nullptr);
+                &imgInfos[writeCount], nullptr, nullptr);
+            ++writeCount;
         }
+    }
+
+    if (writeCount > 0) {
+        m_device.updateDescriptorSets(writeCount, writes.data(), 0, nullptr);
     }
 
     m_cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,

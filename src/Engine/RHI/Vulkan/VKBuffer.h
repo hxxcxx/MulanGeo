@@ -26,6 +26,7 @@ public:
     void* mappedData() const { return m_mappedData; }
     const void* pendingData() const { return m_pendingData.data(); }
     bool needsUpload() const { return !m_pendingData.empty(); }
+    /// 标记初始数据已同步上传完成（仅由 VKUploadContext 调用）
     void markUploaded() { m_pendingData.clear(); m_pendingData.shrink_to_fit(); }
 
     void update(uint32_t offset, uint32_t size, const void* data) override;

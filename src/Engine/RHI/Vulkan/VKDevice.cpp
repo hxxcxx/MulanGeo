@@ -246,6 +246,10 @@ void VKDevice::beginFrame() {
 
     m_descriptorAllocators[m_currentFrame]->resetPools();
 
+    // 回收上一轮独立 CommandList 的 descriptor allocator
+    // 这些 allocator 对应的 CommandList 应已在上一帧完成使用
+    m_standaloneAllocators.clear();
+
     m_frameCmdList = std::make_unique<VKCommandList>(m_device, frame.cmdBuffer(),
                                                     m_descriptorAllocators[m_currentFrame].get());
 

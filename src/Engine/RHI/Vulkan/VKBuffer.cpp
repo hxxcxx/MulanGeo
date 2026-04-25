@@ -71,6 +71,10 @@ void VKBuffer::update(uint32_t offset, uint32_t size, const void* data) {
     if (m_mappedData) {
         memcpy(static_cast<uint8_t*>(m_mappedData) + offset, data, size);
         vmaFlushAllocation(m_allocator, m_allocation, offset, size);
+    } else {
+        // Immutable / device-local buffer: update() 不适用
+        // 初始数据通过 m_pendingData + uploadBufferInit() 同步上传
+        // 运行时更新应使用 cmd->updateBuffer() (GPU-side copy)
     }
 }
 

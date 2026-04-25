@@ -358,9 +358,14 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList,
 
     if (!m_objectBuffer || !pso) return;
 
-    uint32_t ringIndex = m_drawCallIndex % kMaxDrawCalls;
-    uint32_t objOffset = ringIndex * m_objectStride;
-    uint32_t matOffset = ringIndex * m_materialStride;
+    // 超过 ring buffer 容量时跳过（防止覆盖 in-flight 数据）
+    if (m_drawCallIndex >= kMaxDrawCalls) {
+        ++m_stats.items;
+        return;
+    }
+
+    uint32_t objOffset = m_drawCallIndex * m_objectStride;
+    uint32_t matOffset = m_drawCallIndex * m_materialStride;
 
     // --- 1. 写 ObjectUBO (每次必须) ---
 
