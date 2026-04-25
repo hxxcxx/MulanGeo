@@ -128,19 +128,19 @@ ResourcePtr<Buffer> DX12Device::createBuffer(const BufferDesc& desc) {
         buf->markUploaded();
     }
 
-    return ResourcePtr<Buffer>(buf, DeviceResourceDeleter{this});
+    return ResourcePtr<Buffer>(buf, DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Texture> DX12Device::createTexture(const TextureDesc& desc) {
-    return ResourcePtr<Texture>(new DX12Texture(desc, m_device.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<Texture>(new DX12Texture(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Shader> DX12Device::createShader(const ShaderDesc& desc) {
-    return ResourcePtr<Shader>(new DX12Shader(desc), DeviceResourceDeleter{this});
+    return ResourcePtr<Shader>(new DX12Shader(desc), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<PipelineState> DX12Device::createPipelineState(const GraphicsPipelineDesc& desc) {
-    return ResourcePtr<PipelineState>(new DX12PipelineState(desc, m_device.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<PipelineState>(new DX12PipelineState(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<CommandList> DX12Device::createCommandList() {
@@ -148,20 +148,20 @@ ResourcePtr<CommandList> DX12Device::createCommandList() {
     auto allocator = ComPtr<ID3D12CommandAllocator>();
     m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                      IID_PPV_ARGS(&allocator));
-    return ResourcePtr<CommandList>(new DX12CommandList(m_device.Get(), allocator.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<CommandList>(new DX12CommandList(m_device.Get(), allocator.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<SwapChain> DX12Device::createSwapChain(const SwapChainDesc& desc) {
     return ResourcePtr<SwapChain>(new DX12SwapChain(desc, m_device.Get(), m_factory.Get(),
-                             m_commandQueue.Get(), m_window), DeviceResourceDeleter{this});
+                             m_commandQueue.Get(), m_window), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<RenderTarget> DX12Device::createRenderTarget(const RenderTargetDesc& desc) {
-    return ResourcePtr<RenderTarget>(new DX12RenderTarget(desc, m_device.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<RenderTarget>(new DX12RenderTarget(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Fence> DX12Device::createFence(uint64_t initialValue) {
-    return ResourcePtr<Fence>(new DX12Fence(m_device.Get(), initialValue), DeviceResourceDeleter{this});
+    return ResourcePtr<Fence>(new DX12Fence(m_device.Get(), initialValue), DeviceResourceDeleter{shared_from_this()});
 }
 
 // ============================================================

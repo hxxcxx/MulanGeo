@@ -212,7 +212,7 @@ bool GLDevice::createWGLContext(HWND hwnd, bool enableValidation) {
 ResourcePtr<Buffer> GLDevice::createBuffer(const BufferDesc& desc) {
     auto* buffer = new GLBuffer(desc);
     if (buffer && buffer->isValid()) {
-        return ResourcePtr<Buffer>(buffer, DeviceResourceDeleter{this});
+        return ResourcePtr<Buffer>(buffer, DeviceResourceDeleter{shared_from_this()});
     }
     delete buffer;
     std::fprintf(stderr, "[GLDevice] Failed to create buffer: %s\n",
@@ -223,7 +223,7 @@ ResourcePtr<Buffer> GLDevice::createBuffer(const BufferDesc& desc) {
 ResourcePtr<Texture> GLDevice::createTexture(const TextureDesc& desc) {
     auto* texture = new GLTexture(desc);
     if (texture && texture->isValid()) {
-        return ResourcePtr<Texture>(texture, DeviceResourceDeleter{this});
+        return ResourcePtr<Texture>(texture, DeviceResourceDeleter{shared_from_this()});
     }
     delete texture;
     std::fprintf(stderr, "[GLDevice] Failed to create texture: %s\n",
@@ -234,7 +234,7 @@ ResourcePtr<Texture> GLDevice::createTexture(const TextureDesc& desc) {
 ResourcePtr<Shader> GLDevice::createShader(const ShaderDesc& desc) {
     auto* shader = new GLShader(desc);
     if (shader && shader->isValid()) {
-        return ResourcePtr<Shader>(shader, DeviceResourceDeleter{this});
+        return ResourcePtr<Shader>(shader, DeviceResourceDeleter{shared_from_this()});
     }
     delete shader;
     std::fprintf(stderr, "[GLDevice] Failed to create shader: %s\n",
@@ -245,7 +245,7 @@ ResourcePtr<Shader> GLDevice::createShader(const ShaderDesc& desc) {
 ResourcePtr<PipelineState> GLDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
     auto* pipeline = new GLPipelineState(desc);
     if (pipeline && pipeline->isValid()) {
-        return ResourcePtr<PipelineState>(pipeline, DeviceResourceDeleter{this});
+        return ResourcePtr<PipelineState>(pipeline, DeviceResourceDeleter{shared_from_this()});
     }
     delete pipeline;
     std::fprintf(stderr, "[GLDevice] Failed to create pipeline state: %s\n",
@@ -256,7 +256,7 @@ ResourcePtr<PipelineState> GLDevice::createPipelineState(const GraphicsPipelineD
 ResourcePtr<CommandList> GLDevice::createCommandList() {
     auto* cmdList = new GLCommandList();
     if (cmdList)
-        return ResourcePtr<CommandList>(cmdList, DeviceResourceDeleter{this});
+        return ResourcePtr<CommandList>(cmdList, DeviceResourceDeleter{shared_from_this()});
     delete cmdList;
     std::fprintf(stderr, "[GLDevice] Failed to create command list\n");
     return nullptr;
@@ -267,7 +267,7 @@ ResourcePtr<SwapChain> GLDevice::createSwapChain(const SwapChainDesc& desc) {
     GLSwapChain::InitParams params;
     params.hdc  = m_hdc;
     params.hwnd = m_hwnd;
-    return ResourcePtr<SwapChain>(new GLSwapChain(desc, params, m_renderConfig), DeviceResourceDeleter{this});
+    return ResourcePtr<SwapChain>(new GLSwapChain(desc, params, m_renderConfig), DeviceResourceDeleter{shared_from_this()});
 #else
     std::fprintf(stderr, "[GLDevice] createSwapChain: unsupported platform\n");
     return nullptr;
@@ -283,7 +283,7 @@ ResourcePtr<Fence> GLDevice::createFence(uint64_t /*initialValue*/) {
 ResourcePtr<RenderTarget> GLDevice::createRenderTarget(const RenderTargetDesc& desc) {
     auto* rt = new GLRenderTarget(desc);
     if (rt && rt->isValid()) {
-        return ResourcePtr<RenderTarget>(rt, DeviceResourceDeleter{this});
+        return ResourcePtr<RenderTarget>(rt, DeviceResourceDeleter{shared_from_this()});
     }
     delete rt;
     std::fprintf(stderr, "[GLDevice] Failed to create render target (%ux%u)\n",

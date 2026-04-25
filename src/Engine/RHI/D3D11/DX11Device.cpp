@@ -139,50 +139,50 @@ Mat4 DX11Device::clipSpaceCorrectionMatrix() const
 ResourcePtr<Buffer> DX11Device::createBuffer(const BufferDesc& desc)
 {
     if (!m_device || !m_immediateCtx) return nullptr;
-    return ResourcePtr<Buffer>(new DX11Buffer(desc, m_device.Get(), m_immediateCtx.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<Buffer>(new DX11Buffer(desc, m_device.Get(), m_immediateCtx.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Texture> DX11Device::createTexture(const TextureDesc& desc)
 {
     if (!m_device) return nullptr;
-    return ResourcePtr<Texture>(new DX11Texture(desc, m_device.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<Texture>(new DX11Texture(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Shader> DX11Device::createShader(const ShaderDesc& desc)
 {
     if (!m_device) return nullptr;
-    return ResourcePtr<Shader>(new DX11Shader(desc, m_device.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<Shader>(new DX11Shader(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<PipelineState> DX11Device::createPipelineState(const GraphicsPipelineDesc& desc)
 {
     if (!m_device) return nullptr;
-    return ResourcePtr<PipelineState>(new DX11PipelineState(desc, m_device.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<PipelineState>(new DX11PipelineState(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<CommandList> DX11Device::createCommandList()
 {
     if (!m_immediateCtx) return nullptr;
-    return ResourcePtr<CommandList>(new DX11CommandList(m_immediateCtx.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<CommandList>(new DX11CommandList(m_immediateCtx.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<SwapChain> DX11Device::createSwapChain(const SwapChainDesc& desc)
 {
     if (!m_device || !m_factory || !m_immediateCtx) return nullptr;
     return ResourcePtr<SwapChain>(new DX11SwapChain(desc, m_device.Get(), m_factory.Get(),
-                             m_immediateCtx.Get(), m_window, m_renderConfig), DeviceResourceDeleter{this});
+                             m_immediateCtx.Get(), m_window, m_renderConfig), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<RenderTarget> DX11Device::createRenderTarget(const RenderTargetDesc& desc)
 {
     if (!m_device) return nullptr;
-    return ResourcePtr<RenderTarget>(new DX11RenderTarget(desc, m_device.Get()), DeviceResourceDeleter{this});
+    return ResourcePtr<RenderTarget>(new DX11RenderTarget(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Fence> DX11Device::createFence(uint64_t initialValue)
 {
     if (!m_device) return nullptr;
-    return ResourcePtr<Fence>(new DX11Fence(m_device.Get(), initialValue), DeviceResourceDeleter{this});
+    return ResourcePtr<Fence>(new DX11Fence(m_device.Get(), initialValue), DeviceResourceDeleter{shared_from_this()});
 }
 
 // ============================================================

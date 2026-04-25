@@ -35,7 +35,7 @@ using namespace MulanGeo::Engine;
 namespace {
 
 struct WasmApp {
-    std::unique_ptr<GLDevice>      device;
+    std::shared_ptr<GLDevice>      device;
     std::unique_ptr<GLSwapChain>   swapChain;
     std::unique_ptr<SceneRenderer> renderer;
 
@@ -140,7 +140,7 @@ int main() {
     ci.enableValidation = false;  // WebGL 不支持 GL_DEBUG_OUTPUT
     ci.window.type      = NativeWindowHandle::Type::Unknown; // Emscripten 管理上下文
 
-    g_app.device = std::make_unique<GLDevice>(ci);
+    g_app.device = std::make_shared<GLDevice>(ci);
     if (!g_app.device->isInitialized()) {
         std::fprintf(stderr, "[WASM] GLDevice initialization failed\n");
         return 1;

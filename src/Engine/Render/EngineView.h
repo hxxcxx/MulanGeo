@@ -174,7 +174,7 @@ private:
     void cleanup();
 
     // --- RHI 资源 ---
-    std::unique_ptr<RHIDevice>  m_device;
+    std::shared_ptr<RHIDevice>   m_device;
     ResourcePtr<SwapChain>      m_swapchain;
     ResourcePtr<RenderTarget>   m_renderTarget;
     ResourcePtr<Buffer>         m_stagingBuffer;

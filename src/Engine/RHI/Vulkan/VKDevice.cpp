@@ -19,23 +19,23 @@ ResourcePtr<Buffer> VKDevice::createBuffer(const BufferDesc& desc) {
     if (buf->needsUpload()) {
         m_uploadContext->uploadBufferInit(buf);
     }
-    return ResourcePtr<Buffer>(buf, DeviceResourceDeleter{this});
+    return ResourcePtr<Buffer>(buf, DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Texture> VKDevice::createTexture(const TextureDesc& desc) {
-    return ResourcePtr<Texture>(new VKTexture(desc, m_device, m_allocator), DeviceResourceDeleter{this});
+    return ResourcePtr<Texture>(new VKTexture(desc, m_device, m_allocator), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Shader> VKDevice::createShader(const ShaderDesc& desc) {
-    return ResourcePtr<Shader>(new VKShader(desc, m_device), DeviceResourceDeleter{this});
+    return ResourcePtr<Shader>(new VKShader(desc, m_device), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<PipelineState> VKDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
-    return ResourcePtr<PipelineState>(new VKPipelineState(desc, m_device), DeviceResourceDeleter{this});
+    return ResourcePtr<PipelineState>(new VKPipelineState(desc, m_device), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<CommandList> VKDevice::createCommandList() {
-    return ResourcePtr<CommandList>(new VKCommandList(m_device, m_graphicsQueueFamily), DeviceResourceDeleter{this});
+    return ResourcePtr<CommandList>(new VKCommandList(m_device, m_graphicsQueueFamily), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<SwapChain> VKDevice::createSwapChain(const SwapChainDesc& desc) {
@@ -63,11 +63,11 @@ ResourcePtr<SwapChain> VKDevice::createSwapChain(const SwapChainDesc& desc) {
         initFrameContexts(m_frameCount);
     }
 
-    return ResourcePtr<SwapChain>(swapchain, DeviceResourceDeleter{this});
+    return ResourcePtr<SwapChain>(swapchain, DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<Fence> VKDevice::createFence(uint64_t initialValue) {
-    return ResourcePtr<Fence>(new VKFence(m_device, initialValue), DeviceResourceDeleter{this});
+    return ResourcePtr<Fence>(new VKFence(m_device, initialValue), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<RenderTarget> VKDevice::createRenderTarget(const RenderTargetDesc& desc) {
@@ -78,7 +78,7 @@ ResourcePtr<RenderTarget> VKDevice::createRenderTarget(const RenderTargetDesc& d
         initFrameContexts(m_frameCount);
     }
 
-    return ResourcePtr<RenderTarget>(rt, DeviceResourceDeleter{this});
+    return ResourcePtr<RenderTarget>(rt, DeviceResourceDeleter{shared_from_this()});
 }
 
 // ============================================================

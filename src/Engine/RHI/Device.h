@@ -71,9 +71,9 @@ class RHIDevice;
 // ============================================================
 
 struct DeviceResourceDeleter {
-    RHIDevice* device = nullptr;
+    std::shared_ptr<RHIDevice> device;  // shared_ptr — 延长 Device 生命周期
     template <typename T>
-    void operator()(T* ptr) const;
+    void operator()(T* ptr) const noexcept;
 };
 
 template <typename T>
@@ -81,8 +81,8 @@ using ResourcePtr = std::unique_ptr<T, DeviceResourceDeleter>;
 
 /// 创建 RAII 资源指针
 template <typename T>
-ResourcePtr<T> makeResource(T* raw, RHIDevice* device) {
-    return ResourcePtr<T>(raw, DeviceResourceDeleter{device});
+ResourcePtr<T> makeResource(T* raw, std::shared_ptr<RHIDevice> device) {
+    return ResourcePtr<T>(raw, DeviceResourceDeleter{std::move(device)});
 }
 
 // ============================================================
@@ -92,12 +92,12 @@ ResourcePtr<T> makeResource(T* raw, RHIDevice* device) {
 // 后端实现继承此类，UI 层只依赖此接口。
 // ============================================================
 
-class RHIDevice {
+class RHIDevice : public std::enable_shared_from_this<RHIDevice> {
 public:
     virtual ~RHIDevice() = default;
 
     // --- 工厂函数（根据 backend 创建具体实现）---
-    static std::unique_ptr<RHIDevice> create(const DeviceCreateInfo& ci);
+    static std::shared_ptr<RHIDevice> create(const DeviceCreateInfo& ci);
 
     // --- 设备信息 ---
 
@@ -204,7 +204,7 @@ protected:
 // ============================================================
 
 template <typename T>
-void DeviceResourceDeleter::operator()(T* ptr) const {
+void DeviceResourceDeleter::operator()(T* ptr) const noexcept {
     if (ptr && device) device->destroy(ptr);
 }
 

@@ -9,21 +9,21 @@
 
 namespace MulanGeo::Engine {
 
-std::unique_ptr<RHIDevice> RHIDevice::create(const DeviceCreateInfo& ci) {
+std::shared_ptr<RHIDevice> RHIDevice::create(const DeviceCreateInfo& ci) {
     switch (ci.backend) {
 #ifndef __EMSCRIPTEN__
     case GraphicsBackend::Vulkan:
-        return std::make_unique<VKDevice>(ci);
+        return std::make_shared<VKDevice>(ci);
 
     case GraphicsBackend::D3D12:
-        return std::make_unique<DX12Device>(ci);
+        return std::make_shared<DX12Device>(ci);
 
     case GraphicsBackend::D3D11:
-        return std::make_unique<DX11Device>(ci);
+        return std::make_shared<DX11Device>(ci);
 #endif
 
     case GraphicsBackend::OpenGL: {
-        auto dev = std::make_unique<GLDevice>(ci);
+        auto dev = std::make_shared<GLDevice>(ci);
         if (!dev->isInitialized()) {
             std::fprintf(stderr, "[RHIDevice] GLDevice initialization failed\n");
             return nullptr;
