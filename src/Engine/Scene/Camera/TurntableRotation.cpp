@@ -28,7 +28,7 @@ Vec3 TurntableRotation::up() const {
 
 void TurntableRotation::orbitDelta(double dx, double dy) {
     m_yaw   -= dx * m_orbitSpeed;
-    m_pitch += dy * m_orbitSpeed;
+    m_pitch -= dy * m_orbitSpeed;
     m_pitch  = std::clamp(m_pitch, kMinPitch, kMaxPitch);
 }
 
@@ -51,7 +51,7 @@ void TurntableRotation::orbitToPoint(int x, int y, int, int) {
     m_orbitPrevY = y;
     if (dx == 0 && dy == 0) return;
     m_yaw   -= static_cast<double>(dx) * m_orbitSpeed;
-    m_pitch += static_cast<double>(dy) * m_orbitSpeed;
+    m_pitch -= static_cast<double>(dy) * m_orbitSpeed;
     m_pitch  = std::clamp(m_pitch, kMinPitch, kMaxPitch);
 }
 

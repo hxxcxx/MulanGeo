@@ -36,7 +36,7 @@ enum class CameraMode : uint8_t {
 class Camera {
 public:
     /// @param initialMode 初始旋转模式，缺省为 Trackball
-    explicit Camera(CameraMode initialMode = CameraMode::Trackball);
+    explicit Camera(CameraMode initialMode = CameraMode::Turntable);
 
     // ==================== 模式控制 ====================
 
