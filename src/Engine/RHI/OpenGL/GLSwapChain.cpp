@@ -62,8 +62,13 @@ void GLSwapChain::beginRenderPass(CommandList* /*cmd*/) {
                static_cast<GLsizei>(m_desc.width),
                static_cast<GLsizei>(m_desc.height));
 
+    // 确保 writemask 全开，否则 glClear 可能不写深度
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_TRUE);
+
     const auto& cc = m_renderConfig.clearColor;
     glClearColor(cc[0], cc[1], cc[2], cc[3]);
+    glClearDepthf(1.0f);
 
     GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
     if (m_renderConfig.stencilBuffer) {

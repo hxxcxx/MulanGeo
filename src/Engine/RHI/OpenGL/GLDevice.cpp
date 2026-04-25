@@ -329,12 +329,7 @@ void GLDevice::waitIdle() {
 
 void GLDevice::beginFrame() {
     // OpenGL 无需 acquire image，直接开始新帧
-    // 清除默认 framebuffer
-    glClearColor(m_renderConfig.clearColor[0],
-                 m_renderConfig.clearColor[1],
-                 m_renderConfig.clearColor[2],
-                 m_renderConfig.clearColor[3]);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // clear 由 SwapChain/RenderTarget 的 beginRenderPass 负责
 }
 
 CommandList* GLDevice::frameCommandList() {

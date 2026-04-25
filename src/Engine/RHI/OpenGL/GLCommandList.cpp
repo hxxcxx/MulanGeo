@@ -85,16 +85,6 @@ void GLCommandList::setVertexBuffer(uint32_t slot, Buffer* buffer,
     }
 
     m_vertexLayoutDirty = true;  // VBO 更换，需重新绑定属性指针
-
-    // 立即绑定到 VAO 中（VAO 内保存 VBO 绑定信息）
-    glBindVertexArray(m_vao);
-    if (buffer) {
-        auto* glBuf = static_cast<GLBuffer*>(buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, glBuf->handle());
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-    glBindVertexArray(0);
 }
 
 void GLCommandList::setVertexBuffers(uint32_t startSlot, uint32_t count,

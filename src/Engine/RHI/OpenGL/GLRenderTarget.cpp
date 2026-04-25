@@ -182,12 +182,16 @@ void GLRenderTarget::beginRenderPass(CommandList* /*cmd*/) {
                static_cast<GLsizei>(m_desc.width),
                static_cast<GLsizei>(m_desc.height));
 
+    // 确保 writemask 全开，否则 glClear 可能不写深度
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_TRUE);
+
     glClearColor(m_desc.clearColor[0], m_desc.clearColor[1],
                  m_desc.clearColor[2], m_desc.clearColor[3]);
+    glClearDepthf(m_desc.clearDepth);
 
     GLbitfield clearMask = GL_COLOR_BUFFER_BIT;
     if (m_desc.hasDepth) {
-        glClearDepthf(m_desc.clearDepth);
         clearMask |= GL_DEPTH_BUFFER_BIT;
 
         // 如果是带模板的深度格式，同时清除模板
