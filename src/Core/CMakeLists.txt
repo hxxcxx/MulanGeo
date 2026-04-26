@@ -5,6 +5,7 @@
 add_library(Core SHARED
     Image/Image.cpp
     Log/Log.cpp
+    Result/Result.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Core/...
@@ -35,6 +36,14 @@ endif()
 # --- spdlog (日志) ---
 find_package(spdlog CONFIG REQUIRED)
 target_link_libraries(Core PRIVATE spdlog::spdlog)
+
+# --- tl-expected (Result<T, Error>) ---
+find_path(TL_EXPECTED_INCLUDE_DIR "tl/expected.hpp")
+if(TL_EXPECTED_INCLUDE_DIR)
+    target_include_directories(Core PUBLIC ${TL_EXPECTED_INCLUDE_DIR})
+else()
+    message(FATAL_ERROR "tl-expected not found — run vcpkg install tl-expected")
+endif()
 
 # CMake 对 SHARED 库自动定义 <name>_EXPORTS 宏（如 Core_EXPORTS）
 # 我们用 Core_EXPORTS 来触发 dllexport

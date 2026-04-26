@@ -4,7 +4,9 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cassert>
 #include <cstdint>
+#include <source_location>
 #include <string_view>
 
 namespace MulanGeo::Core::Log {
@@ -72,11 +74,14 @@ inline spdlog::level::level_enum toSpdlogLevel(Level lvl) {
     assert(idx < std::size(kLevelMap));
     return kLevelMap[idx];
 }
-/// 格式化日志（模板转发至 spdlog，编译期检查格式串）
+/// 格式化日志（模板转发至 spdlog，编译期检查格式串，自动捕获调用位置）
 template <typename... Args>
-void logf(Level lvl, spdlog::format_string_t<Args...> fmt, Args&&... args) {
+void logf(Level lvl, spdlog::format_string_t<Args...> fmt, Args&&... args,
+          std::source_location loc = std::source_location::current()) {
     if (auto lgr = spdlog::default_logger_raw()) {
-        lgr->log(toSpdlogLevel(lvl), fmt, std::forward<Args>(args)...);
+        spdlog::source_loc src{loc.file_name(), static_cast<int>(loc.line()),
+                               loc.function_name()};
+        lgr->log(src, toSpdlogLevel(lvl), fmt, std::forward<Args>(args)...);
     }
 }
 
