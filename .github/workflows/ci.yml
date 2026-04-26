@@ -20,81 +20,67 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
 
       # ── Qt6 ──
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         with:
           version: "6.8.3"
-          modules: "qtshadertools"
           cache: true
 
       # ── OpenCASCADE 7.9.3 ──
+      # combined zip = OCCT + 3rdparty，无需单独下载 3rdparty
       - name: Cache OpenCASCADE
         id: cache-occt
         uses: actions/cache@v4
         with:
           path: C:\OCCT
-          key: occt-7.9.3-vc14-64-combined-v1
+          key: occt-7.9.3-vc14-64-combined-v2
 
       - name: Download and extract OpenCASCADE
         if: steps.cache-occt.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $occtUrl = "https://github.com/Open-Cascade-SAS/OCCT/releases/download/V7_9_3/opencascade-7.9.3-vc14-64-combined.zip"
-          $thirdPartyUrl = "https://github.com/Open-Cascade-SAS/OCCT/releases/download/V7_9_3/3rdparty-vc14-64.zip"
           $occtZip = "$env:RUNNER_TEMP\occt-combined.zip"
-          $thirdpartyZip = "$env:RUNNER_TEMP\3rdparty.zip"
 
-          Write-Host "Downloading OCCT 7.9.3 combined..."
+          Write-Host "Downloading OCCT 7.9.3 combined (includes 3rdparty)..."
           Invoke-WebRequest -Uri $occtUrl -OutFile $occtZip -MaximumRetryCount 3
-          Write-Host "Downloading OCCT 3rdparty..."
-          Invoke-WebRequest -Uri $thirdPartyUrl -OutFile $thirdpartyZip -MaximumRetryCount 3
 
-          Write-Host "Extracting OCCT..."
+          Write-Host "Extracting..."
           Expand-Archive -Path $occtZip -DestinationPath "C:\OCCT" -Force
-          Write-Host "Extracting 3rdparty..."
-          Expand-Archive -Path $thirdpartyZip -DestinationPath "C:\OCCT\3rdparty" -Force
 
-          Write-Host "Verifying OCCT_ROOT..."
-          if (Test-Path "C:\OCCT\inc") {
-            Write-Host "OK: C:\OCCT\inc found"
-          } else {
-            $sub = Get-ChildItem "C:\OCCT" -Directory | Where-Object { Test-Path "$($_.FullName)\inc" } | Select-Object -First 1
-            if ($sub) {
-              Write-Host "Found OCCT at: $($sub.FullName)"
-            } else {
-              Get-ChildItem "C:\OCCT" -Recurse -Depth 2 | ForEach-Object { Write-Host "  $($_.FullName)" }
-              Write-Error "OCCT inc/ directory not found"
-              exit 1
-            }
-          }
+          Write-Host "Verifying extraction..."
+          Get-ChildItem "C:\OCCT" -Depth 1 | ForEach-Object { Write-Host "  $($_.FullName)" }
 
       - name: Resolve OCCT_ROOT and OCCT_3RDPARTY_DIR
         shell: pwsh
         run: |
           $occtRoot = "C:\OCCT"
-          $thirdPartyDir = "C:\OCCT\3rdparty"
+          $thirdPartyDir = "C:\OCCT"
 
+          # 查找含 inc 的目录
           if (-not (Test-Path "$occtRoot\inc")) {
-            $sub = Get-ChildItem $occtRoot -Directory | Where-Object { Test-Path "$($_.FullName)\inc" } | Select-Object -First 1
+            $sub = Get-ChildItem $occtRoot -Directory -Recurse -Depth 1 |
+              Where-Object { Test-Path "$($_.FullName)\inc" } |
+              Select-Object -First 1
             if ($sub) { $occtRoot = $sub.FullName }
           }
 
+          # 查找含 vc14 的 3rdparty 目录
           if (-not (Test-Path "$thirdPartyDir\vc14")) {
-            $sub = Get-ChildItem $thirdPartyDir -Directory | Where-Object { Test-Path "$($_.FullName)\vc14" } | Select-Object -First 1
-            if ($sub) { $thirdPartyDir = $sub.FullName }
+            $top = Get-ChildItem $thirdPartyDir -Directory -Recurse -Depth 2 |
+              Where-Object { Test-Path "$($_.FullName)\vc14" } |
+              Select-Object -First 1
+            if ($top) { $thirdPartyDir = $top.FullName }
           }
 
-          Write-Host "OCCT_ROOT=$occtRoot"
-          Write-Host "OCCT_3RDPARTY_DIR=$thirdPartyDir"
-          "OCCT_ROOT=$occtRoot" | Out-File -Append $env:GITHUB_ENV
-          "OCCT_3RDPARTY_DIR=$thirdPartyDir" | Out-File -Append $env:GITHUB_ENV
+          Write-Host "OCCT_ROOT: $occtRoot"
+          Write-Host "OCCT_3RDPARTY_DIR: $thirdPartyDir"
+          "OCCT_ROOT=$occtRoot" >> $env:GITHUB_ENV
+          "OCCT_3RDPARTY_DIR=$thirdPartyDir" >> $env:GITHUB_ENV
 
-      # ── Vulkan SDK1 ──
+      # ── Vulkan SDK ──
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
