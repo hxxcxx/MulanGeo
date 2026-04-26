@@ -34,6 +34,7 @@ add_library(Engine STATIC
     RHI/Vulkan/VKRenderTarget.cpp
     RHI/Vulkan/VKDevice.cpp
     RHI/Vulkan/VKDeviceInit.cpp
+    RHI/Vulkan/VKSampler.cpp
     # D3D12 backend
     RHI/D3D12/DX12Fence.cpp
     RHI/D3D12/DX12DescriptorAllocator.cpp
@@ -47,6 +48,7 @@ add_library(Engine STATIC
     RHI/D3D12/DX12RenderTarget.cpp
     RHI/D3D12/DX12FrameContext.cpp
     RHI/D3D12/DX12Device.cpp
+    RHI/D3D12/DX12Sampler.cpp
     # D3D11 backend
     RHI/D3D11/DX11Buffer.cpp
     RHI/D3D11/DX11Texture.cpp
@@ -57,6 +59,7 @@ add_library(Engine STATIC
     RHI/D3D11/DX11SwapChain.cpp
     RHI/D3D11/DX11RenderTarget.cpp
     RHI/D3D11/DX11Device.cpp
+    RHI/D3D11/DX11Sampler.cpp
     # OpenGL backend (placeholder)
     RHI/OpenGL/GLDevice.cpp
     RHI/OpenGL/GLShader.cpp
@@ -66,6 +69,7 @@ add_library(Engine STATIC
     RHI/OpenGL/GLCommandList.cpp
     RHI/OpenGL/GLRenderTarget.cpp
     RHI/OpenGL/GLTexture.cpp
+    RHI/OpenGL/GLSampler.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...

@@ -86,6 +86,10 @@ ResourcePtr<RenderTarget> VKDevice::createRenderTarget(const RenderTargetDesc& d
     return ResourcePtr<RenderTarget>(rt, DeviceResourceDeleter{shared_from_this()});
 }
 
+ResourcePtr<Sampler> VKDevice::createSampler(const SamplerDesc& desc) {
+    return ResourcePtr<Sampler>(new VKSampler(desc, m_device), DeviceResourceDeleter{shared_from_this()});
+}
+
 // ============================================================
 // 资源销毁
 // ============================================================
@@ -97,6 +101,7 @@ void VKDevice::destroy(PipelineState* resource)  { delete static_cast<VKPipeline
 void VKDevice::destroy(CommandList* resource)    { delete static_cast<VKCommandList*>(resource); }
 void VKDevice::destroy(Fence* resource)          { delete static_cast<VKFence*>(resource); }
 void VKDevice::destroy(RenderTarget* resource)   { delete static_cast<VKRenderTarget*>(resource); }
+void VKDevice::destroy(Sampler* resource)        { delete static_cast<VKSampler*>(resource); }
 
 void VKDevice::destroy(SwapChain* resource) {
     auto it = std::find(m_swapChains.begin(), m_swapChains.end(), resource);

@@ -291,6 +291,10 @@ ResourcePtr<RenderTarget> GLDevice::createRenderTarget(const RenderTargetDesc& d
     return nullptr;
 }
 
+ResourcePtr<Sampler> GLDevice::createSampler(const SamplerDesc& desc) {
+    return ResourcePtr<Sampler>(new GLSampler(desc), DeviceResourceDeleter{shared_from_this()});
+}
+
 // ============================================================
 // 资源销毁
 // ============================================================
@@ -302,6 +306,7 @@ void GLDevice::destroy(PipelineState* resource) { delete resource; }
 void GLDevice::destroy(CommandList* resource)   { delete resource; }
 void GLDevice::destroy(SwapChain* resource)     { delete resource; }
 void GLDevice::destroy(RenderTarget* resource)  { delete resource; }
+void GLDevice::destroy(Sampler* resource)       { delete resource; }
 void GLDevice::destroy(Fence* resource)         { delete resource; }
 
 // ============================================================

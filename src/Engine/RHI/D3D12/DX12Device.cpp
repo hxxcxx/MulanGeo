@@ -163,6 +163,11 @@ ResourcePtr<RenderTarget> DX12Device::createRenderTarget(const RenderTargetDesc&
     return ResourcePtr<RenderTarget>(new DX12RenderTarget(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
+ResourcePtr<Sampler> DX12Device::createSampler(const SamplerDesc& desc) {
+    // DX12 sampler 需要描述符堆，这里用 nullptr 占位，后续接入主流程时传入 sampler heap
+    return ResourcePtr<Sampler>(new DX12Sampler(desc, m_device.Get(), nullptr), DeviceResourceDeleter{shared_from_this()});
+}
+
 ResourcePtr<Fence> DX12Device::createFence(uint64_t initialValue) {
     return ResourcePtr<Fence>(new DX12Fence(m_device.Get(), initialValue), DeviceResourceDeleter{shared_from_this()});
 }
@@ -178,6 +183,7 @@ void DX12Device::destroy(PipelineState* r) { delete r; }
 void DX12Device::destroy(CommandList* r) { delete r; }
 void DX12Device::destroy(SwapChain* r) { delete r; }
 void DX12Device::destroy(RenderTarget* r) { delete r; }
+void DX12Device::destroy(Sampler* r) { delete r; }
 void DX12Device::destroy(Fence* r) { delete r; }
 
 // ============================================================

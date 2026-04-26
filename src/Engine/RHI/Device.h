@@ -12,6 +12,7 @@
 #include "Fence.h"
 #include "PipelineState.h"
 #include "RenderTarget.h"
+#include "Sampler.h"
 #include "Shader.h"
 #include "SwapChain.h"
 #include "Texture.h"
@@ -121,6 +122,7 @@ public:
     virtual ResourcePtr<CommandList>   createCommandList() = 0;
     virtual ResourcePtr<SwapChain>     createSwapChain(const SwapChainDesc& desc) = 0;
     virtual ResourcePtr<RenderTarget>  createRenderTarget(const RenderTargetDesc& desc) = 0;
+    virtual ResourcePtr<Sampler>       createSampler(const SamplerDesc& desc) = 0;
     virtual ResourcePtr<Fence>         createFence(uint64_t initialValue = 0) = 0;
 
 
@@ -133,6 +135,7 @@ public:
     virtual void destroy(CommandList* resource) = 0;
     virtual void destroy(SwapChain* resource) = 0;
     virtual void destroy(RenderTarget* resource) = 0;
+    virtual void destroy(Sampler* resource) = 0;
     virtual void destroy(Fence* resource) = 0;
 
     // --- 提交命令 ---

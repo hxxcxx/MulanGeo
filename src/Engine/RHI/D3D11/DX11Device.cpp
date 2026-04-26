@@ -179,6 +179,12 @@ ResourcePtr<RenderTarget> DX11Device::createRenderTarget(const RenderTargetDesc&
     return ResourcePtr<RenderTarget>(new DX11RenderTarget(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
 }
 
+ResourcePtr<Sampler> DX11Device::createSampler(const SamplerDesc& desc)
+{
+    if (!m_device) return nullptr;
+    return ResourcePtr<Sampler>(new DX11Sampler(desc, m_device.Get()), DeviceResourceDeleter{shared_from_this()});
+}
+
 ResourcePtr<Fence> DX11Device::createFence(uint64_t initialValue)
 {
     if (!m_device) return nullptr;
@@ -196,6 +202,7 @@ void DX11Device::destroy(PipelineState* r) { delete r; }
 void DX11Device::destroy(CommandList* r) { delete r; }
 void DX11Device::destroy(SwapChain* r) { delete r; }
 void DX11Device::destroy(RenderTarget* r) { delete r; }
+void DX11Device::destroy(Sampler* r) { delete r; }
 void DX11Device::destroy(Fence* r) { delete r; }
 
 // ============================================================

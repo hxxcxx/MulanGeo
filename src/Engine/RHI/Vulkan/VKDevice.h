@@ -18,6 +18,7 @@
 #include "VKCommandList.h"
 #include "VKSwapChain.h"
 #include "VKRenderTarget.h"
+#include "VKSampler.h"
 #include "VKFence.h"
 #include "VKUploadContext.h"
 #include "VKFrameContext.h"
@@ -60,6 +61,7 @@ public:
     ResourcePtr<CommandList>   createCommandList() override;
     ResourcePtr<SwapChain>     createSwapChain(const SwapChainDesc& desc) override;
     ResourcePtr<RenderTarget>  createRenderTarget(const RenderTargetDesc& desc) override;
+    ResourcePtr<Sampler>       createSampler(const SamplerDesc& desc) override;
     ResourcePtr<Fence>         createFence(uint64_t initialValue = 0) override;
 
     // --- 资源销毁 ---
@@ -70,6 +72,7 @@ public:
     void destroy(CommandList* resource) override;
     void destroy(SwapChain* resource) override;
     void destroy(RenderTarget* resource) override;
+    void destroy(Sampler* resource) override;
     void destroy(Fence* resource) override;
 
     // --- 提交命令 ---

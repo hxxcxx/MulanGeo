@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 namespace MulanGeo::Engine {
 
@@ -138,6 +139,71 @@ struct BlendDesc {
     bool                   alphaToCoverage = false;
     bool                   independentBlend = false;
     RenderTargetBlendDesc  renderTargets[8];
+};
+
+// ============================================================
+// 采样器状态
+// ============================================================
+
+enum class SamplerFilter : uint8_t {
+    Nearest,
+    Linear,
+    Anisotropic,
+};
+
+enum class SamplerAddressMode : uint8_t {
+    Repeat,
+    MirroredRepeat,
+    ClampToEdge,
+    ClampToBorder,
+    MirrorClampToEdge,
+};
+
+struct SamplerDesc {
+    SamplerFilter     minFilter   = SamplerFilter::Linear;
+    SamplerFilter     magFilter   = SamplerFilter::Linear;
+    SamplerFilter     mipFilter   = SamplerFilter::Linear;
+    SamplerAddressMode addressU   = SamplerAddressMode::Repeat;
+    SamplerAddressMode addressV   = SamplerAddressMode::Repeat;
+    SamplerAddressMode addressW   = SamplerAddressMode::Repeat;
+    float             maxAniso    = 16.0f;
+    float             mipLodBias  = 0.0f;
+    float             minLod      = -1000.0f;
+    float             maxLod      = 1000.0f;
+    CompareFunc       compareFunc = CompareFunc::Never;
+    float             borderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    bool              anisotropyEnable = false;
+    bool              compareEnable    = false;
+    std::string_view  debugName;
+
+    // 便捷构造
+
+    static SamplerDesc linear() {
+        return {};
+    }
+
+    static SamplerDesc linearClamp() {
+        SamplerDesc d;
+        d.addressU = SamplerAddressMode::ClampToEdge;
+        d.addressV = SamplerAddressMode::ClampToEdge;
+        d.addressW = SamplerAddressMode::ClampToEdge;
+        return d;
+    }
+
+    static SamplerDesc point() {
+        SamplerDesc d;
+        d.minFilter = SamplerFilter::Nearest;
+        d.magFilter = SamplerFilter::Nearest;
+        d.mipFilter = SamplerFilter::Nearest;
+        return d;
+    }
+
+    static SamplerDesc anisotropic(float maxAniso = 16.0f) {
+        SamplerDesc d;
+        d.anisotropyEnable = true;
+        d.maxAniso = maxAniso;
+        return d;
+    }
 };
 
 } // namespace MulanGeo::Engine
