@@ -33,6 +33,26 @@ inline vk::Format toVkFormat(TextureFormat fmt) {
     }
 }
 
+inline TextureFormat fromVkFormat(vk::Format fmt) {
+    switch (fmt) {
+        case vk::Format::eR8G8B8A8Unorm:        return TextureFormat::RGBA8_UNorm;
+        case vk::Format::eB8G8R8A8Unorm:        return TextureFormat::BGRA8_UNorm;
+        case vk::Format::eR8Unorm:              return TextureFormat::R8_UNorm;
+        case vk::Format::eR8G8B8A8Srgb:         return TextureFormat::RGBA8_sRGB;
+        case vk::Format::eB8G8R8A8Srgb:         return TextureFormat::BGRA8_sRGB;
+        case vk::Format::eR16G16B16A16Sfloat:   return TextureFormat::RGBA16_Float;
+        case vk::Format::eR16Sfloat:            return TextureFormat::R16_Float;
+        case vk::Format::eR32G32B32A32Sfloat:   return TextureFormat::RGBA32_Float;
+        case vk::Format::eR32Sfloat:            return TextureFormat::R32_Float;
+        case vk::Format::eR32G32Sfloat:         return TextureFormat::RG32_Float;
+        case vk::Format::eD16Unorm:             return TextureFormat::D16_UNorm;
+        case vk::Format::eD24UnormS8Uint:       return TextureFormat::D24_UNorm_S8_UInt;
+        case vk::Format::eD32Sfloat:            return TextureFormat::D32_Float;
+        case vk::Format::eD32SfloatS8Uint:      return TextureFormat::D32_Float_S8X24_UInt;
+        default:                                return TextureFormat::Unknown;
+    }
+}
+
 inline vk::PrimitiveTopology toVkTopology(PrimitiveTopology topo) {
     switch (topo) {
         case PrimitiveTopology::PointList:       return vk::PrimitiveTopology::ePointList;

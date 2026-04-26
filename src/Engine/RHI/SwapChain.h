@@ -56,7 +56,7 @@ public:
     virtual void resize(uint32_t width, uint32_t height) = 0;
 
     /// 构建 RenderPassBeginInfo（供 CommandList::beginRenderPass 使用）
-    RenderPassBeginInfo renderPassBeginInfo() {
+    virtual RenderPassBeginInfo renderPassBeginInfo() {
         RenderPassBeginInfo info;
         auto* color = currentBackBuffer();
         if (color) {

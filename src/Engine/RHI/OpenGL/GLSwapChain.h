@@ -50,6 +50,8 @@ public:
     Texture* currentBackBuffer() override { return nullptr; } // 默认 FBO，无独立 Texture 对象
     Texture* depthTexture() override { return nullptr; }     // 默认 FBO 的 depth buffer
 
+    RenderPassBeginInfo renderPassBeginInfo() override;
+
     void present() override;
 
     void resize(uint32_t width, uint32_t height) override;

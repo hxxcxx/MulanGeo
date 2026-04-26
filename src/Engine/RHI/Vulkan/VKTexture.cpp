@@ -61,10 +61,19 @@ VKTexture::VKTexture(const TextureDesc& desc, vk::Device device, VmaAllocator al
     m_view = m_device.createImageView(viewCI);
 }
 
+/// Swapchain backbuffer wrapper (does NOT own image/view)
+VKTexture::VKTexture(const TextureDesc& desc, vk::Device device, vk::Image existingImage, vk::ImageView existingView)
+    : m_desc(desc), m_device(device), m_image(existingImage), m_view(existingView), m_ownsResources(false)
+{
+    m_currentLayout = vk::ImageLayout::eUndefined;
+}
+
 VKTexture::~VKTexture() {
-    if (m_view)      m_device.destroyImageView(m_view);
-    if (m_image && m_allocator)
-        vmaDestroyImage(m_allocator, VkImage(m_image), m_allocation);
+    if (m_ownsResources) {
+        if (m_view)      m_device.destroyImageView(m_view);
+        if (m_image && m_allocator)
+            vmaDestroyImage(m_allocator, VkImage(m_image), m_allocation);
+    }
 }
 
 vk::ImageViewCreateInfo VKTexture::viewForFramebuffer() const {

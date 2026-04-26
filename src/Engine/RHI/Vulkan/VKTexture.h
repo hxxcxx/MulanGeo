@@ -14,7 +14,12 @@ namespace MulanGeo::Engine {
 
 class VKTexture : public Texture {
 public:
+    /// Regular texture (owns resources)
     VKTexture(const TextureDesc& desc, vk::Device device, VmaAllocator allocator);
+
+    /// Swapchain backbuffer wrapper (does NOT own image/view, fromSwapchain=true)
+    VKTexture(const TextureDesc& desc, vk::Device device, vk::Image existingImage, vk::ImageView existingView);
+
     ~VKTexture();
 
     const TextureDesc& desc() const override { return m_desc; }
@@ -36,6 +41,7 @@ private:
     VmaAllocation   m_allocation = nullptr;
     vk::ImageView   m_view;
     vk::ImageLayout m_currentLayout = vk::ImageLayout::eUndefined;
+    bool            m_ownsResources = true;
 };
 
 } // namespace MulanGeo::Engine

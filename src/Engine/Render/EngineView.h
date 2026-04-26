@@ -170,7 +170,7 @@ public:
     /// 清除场景引用
     void clearScene();
 private:
-    void initSceneRenderer();
+    bool initSceneRenderer();
     void cleanup();
 
     // --- RHI 资源 ---

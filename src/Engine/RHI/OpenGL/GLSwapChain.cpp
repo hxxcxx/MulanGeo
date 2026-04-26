@@ -26,6 +26,34 @@ GLSwapChain::GLSwapChain(const SwapChainDesc& desc,
 }
 
 // ----------------------------------------------------------------
+// renderPassBeginInfo — 绑定默认 FBO (0) + 设置清除
+// ----------------------------------------------------------------
+
+RenderPassBeginInfo GLSwapChain::renderPassBeginInfo() {
+    RenderPassBeginInfo info;
+    // OpenGL 使用默认 framebuffer (FBO 0)，不需要 Texture 对象
+    info.colorCount   = 1;  // 告知 CommandList 需要清除颜色
+    info.nativeHandle = 0;  // FBO 0 = 默认 framebuffer
+
+    if (m_desc.hasDepth) {
+        info.depthAttachment.target     = nullptr;  // 默认 FBO 的 depth
+        info.depthAttachment.loadAction  = LoadAction::Clear;
+        info.depthAttachment.storeAction = StoreAction::Store;
+    }
+
+    auto& cc = m_desc.clearColor;
+    info.clearColor[0] = cc[0];
+    info.clearColor[1] = cc[1];
+    info.clearColor[2] = cc[2];
+    info.clearColor[3] = cc[3];
+    info.clearDepth    = m_desc.clearDepth;
+    info.presentSource = true;
+    info.width         = m_desc.width;
+    info.height        = m_desc.height;
+    return info;
+}
+
+// ----------------------------------------------------------------
 // present — 交换前后缓冲区
 // ----------------------------------------------------------------
 

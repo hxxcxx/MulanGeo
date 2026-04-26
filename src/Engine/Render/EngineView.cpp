@@ -9,6 +9,7 @@
 #include "../Scene/SceneNode.h"
 
 #include <cstdio>
+#include <cstring>
 
 namespace MulanGeo::Engine {
 
@@ -57,12 +58,14 @@ bool EngineView::init(const ViewConfig& cfg, int width, int height) {
     scDesc.format      = TextureFormat::BGRA8_UNorm;
     scDesc.bufferCount = cfg.bufferCount;
     scDesc.vsync       = cfg.vsync;
+    std::memcpy(scDesc.clearColor, renderCfg.clearColor, sizeof(scDesc.clearColor));
+    scDesc.clearDepth  = renderCfg.clearDepth;
 
     m_swapchain = dev->createSwapChain(scDesc);
     if (!m_swapchain) { cleanup(); return false; }
 
     // --- Scene Renderer（含 Shader/PSO/UBO）---
-    initSceneRenderer();
+    if (!initSceneRenderer()) { cleanup(); return false; }
 
     // --- Camera ---
     m_camera.setViewport(width, height);
@@ -111,7 +114,7 @@ bool EngineView::initOffscreen(int width, int height) {
         BufferDesc::staging(pixelBytes, "ReadbackStaging"));
 
     // --- Scene Renderer ---
-    initSceneRenderer();
+    if (!initSceneRenderer()) { cleanup(); return false; }
 
     // --- Camera ---
     m_camera.setViewport(width, height);
@@ -229,7 +232,7 @@ bool EngineView::readbackPixels(std::vector<uint8_t>& pixels) {
 // SceneRenderer 初始化
 // ============================================================
 
-void EngineView::initSceneRenderer() {
+bool EngineView::initSceneRenderer() {
     TextureFormat colorFmt = m_renderTarget
         ? m_renderTarget->colorFormat()
         : m_swapchain->colorFormat();
@@ -241,7 +244,12 @@ void EngineView::initSceneRenderer() {
         : m_swapchain->hasDepth();
 
     m_sceneRenderer = std::make_unique<SceneRenderer>(m_device.get());
-    m_sceneRenderer->init(colorFmt, depthFmt, hasDepth);
+    if (!m_sceneRenderer->init(colorFmt, depthFmt, hasDepth)) {
+        std::fprintf(stderr, "[EngineView] SceneRenderer::init() failed "
+                             "(shaders or PSOs not loaded)\n");
+        return false;
+    }
+    return true;
 }
 
 // ============================================================

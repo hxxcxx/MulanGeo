@@ -95,10 +95,23 @@ void SceneRenderer::loadShaders() {
     else if (m_device->backend() == GraphicsBackend::D3D11)
         ext = ".dxbc";
 
+    char pathBuf[512];
+    auto checkLoad = [&](const char* name, const std::vector<uint8_t>& data) {
+        if (data.empty()) {
+            snprintf(pathBuf, sizeof(pathBuf), "%s/%s%s", shaderDir.c_str(), name, ext);
+            std::fprintf(stderr, "[SceneRenderer] Failed to load shader: %s\n", pathBuf);
+        }
+    };
+
     auto solidVsData = loadFile((shaderDir + "/solid.vert" + ext).c_str());
     auto solidFsData = loadFile((shaderDir + "/solid.frag" + ext).c_str());
     auto edgeVsData  = loadFile((shaderDir + "/edge.vert" + ext).c_str());
     auto edgeFsData  = loadFile((shaderDir + "/edge.frag" + ext).c_str());
+
+    checkLoad("solid.vert", solidVsData);
+    checkLoad("solid.frag", solidFsData);
+    checkLoad("edge.vert", edgeVsData);
+    checkLoad("edge.frag", edgeFsData);
 
     ShaderDesc vsDesc;
     vsDesc.type         = ShaderType::Vertex;

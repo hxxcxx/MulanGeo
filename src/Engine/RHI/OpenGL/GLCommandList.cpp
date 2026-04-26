@@ -380,7 +380,8 @@ void GLCommandList::beginRenderPass(const RenderPassBeginInfo& info) {
                static_cast<GLsizei>(info.width),
                static_cast<GLsizei>(info.height));
 
-    // Perform clears based on LoadAction
+    // Perform clears based on LoadAction. Depth/color clears obey write masks,
+    // so restore masks before clearing to avoid stale depth from a previous pipeline.
     GLbitfield clearBits = 0;
     for (uint32_t i = 0; i < info.colorCount; ++i) {
         if (info.colorAttachments[i].loadAction == LoadAction::Clear) {
@@ -389,11 +390,18 @@ void GLCommandList::beginRenderPass(const RenderPassBeginInfo& info) {
             clearBits |= GL_COLOR_BUFFER_BIT;
         }
     }
-    if (info.depthAttachment.target && info.depthAttachment.loadAction == LoadAction::Clear) {
+    if (info.depthAttachment.loadAction == LoadAction::Clear &&
+        (info.depthAttachment.target || info.presentSource)) {
         glClearDepthf(info.clearDepth);
         clearBits |= GL_DEPTH_BUFFER_BIT;
     }
     if (clearBits != 0) {
+        if (clearBits & GL_COLOR_BUFFER_BIT) {
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        }
+        if (clearBits & GL_DEPTH_BUFFER_BIT) {
+            glDepthMask(GL_TRUE);
+        }
         glClear(clearBits);
     }
 

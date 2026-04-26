@@ -1,6 +1,6 @@
 #include "VKSwapChain.h"
 #include "VKTexture.h"
-
+#include "VKDevice.h"
 #include <algorithm>
 
 namespace MulanGeo::Engine {
@@ -48,11 +48,12 @@ void VKSwapChain::present() {
 
 void VKSwapChain::resize(uint32_t width, uint32_t height) {
     m_params.device.waitIdle();
+    if (m_params.ownerDevice) {
+        m_params.ownerDevice->clearFramebufferCache();
+    }
     cleanup();
-
     m_desc.width  = width;
     m_desc.height = height;
-
     createSwapChain();
 }
 
@@ -134,9 +135,14 @@ void VKSwapChain::createSwapChain() {
     m_swapchainImages  = m_params.device.getSwapchainImagesKHR(m_swapchain);
     m_swapchainFormat  = surfaceFormat.format;
     m_swapchainExtent  = extent;
+    m_desc.format      = fromVkFormat(m_swapchainFormat);
+    m_desc.width       = extent.width;
+    m_desc.height      = extent.height;
 
-    // 创建 ImageViews
+    // 创建 ImageViews + VKTexture wrappers for backbuffers
     m_imageViews.resize(m_swapchainImages.size());
+    m_backBuffers.clear();
+    m_backBuffers.reserve(m_swapchainImages.size());
     for (size_t i = 0; i < m_swapchainImages.size(); ++i) {
         vk::ImageViewCreateInfo viewCI;
         viewCI.image            = m_swapchainImages[i];
@@ -146,12 +152,21 @@ void VKSwapChain::createSwapChain() {
         viewCI.subresourceRange.levelCount     = 1;
         viewCI.subresourceRange.layerCount     = 1;
         m_imageViews[i] = m_params.device.createImageView(viewCI);
+
+        // 创建 VKTexture 包装（不拥有 image/view，生命周期由 swapchain 管理）
+        auto backBufDesc = TextureDesc::renderTarget(
+            extent.width, extent.height,
+            fromVkFormat(m_swapchainFormat), "SwapchainBackBuffer");
+
+        m_backBuffers.push_back(std::make_unique<VKTexture>(
+            backBufDesc, m_params.device,
+            m_swapchainImages[i], m_imageViews[i]));
     }
 
     // 深度缓冲
     TextureDesc depthDesc = TextureDesc::depthStencil(extent.width, extent.height,
-                                                      m_desc.depthFormat,
-                                                      "DepthBuffer");
+                                                       m_desc.depthFormat,
+                                                       "DepthBuffer");
     m_depthTexture = std::make_unique<VKTexture>(depthDesc, m_params.device, m_params.allocator);
 }
 
