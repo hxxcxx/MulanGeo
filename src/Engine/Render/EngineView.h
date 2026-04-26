@@ -49,7 +49,7 @@ struct ViewConfig {
     GraphicsBackend backend = GraphicsBackend::Vulkan;
 
     // --- 抗锯齿 ---
-    RenderConfig::MSAALevel msaa = RenderConfig::MSAALevel::None;
+    RenderConfig::MSAALevel msaa = RenderConfig::MSAALevel::x4;
 
     // --- 帧缓冲 ---
     uint8_t  bufferCount = 2;           // 双缓冲 / 三缓冲

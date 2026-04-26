@@ -57,6 +57,7 @@ bool EngineView::init(const ViewConfig& cfg, int width, int height) {
     scDesc.height      = static_cast<uint32_t>(height);
     scDesc.format      = TextureFormat::BGRA8_UNorm;
     scDesc.bufferCount = cfg.bufferCount;
+    scDesc.sampleCount = renderCfg.sampleCount();
     scDesc.vsync       = cfg.vsync;
     std::memcpy(scDesc.clearColor, renderCfg.clearColor, sizeof(scDesc.clearColor));
     scDesc.clearDepth  = renderCfg.clearDepth;

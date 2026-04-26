@@ -25,6 +25,7 @@ struct SwapChainDesc {
     uint32_t       height      = 0;
     TextureFormat  format      = TextureFormat::RGBA8_UNorm;
     uint32_t       bufferCount = 2;       // 双缓冲 / 三缓冲
+    uint32_t       sampleCount = 1;       // MSAA sample count（swapchain 后端可按需使用）
     bool           vsync       = true;
     TextureFormat  depthFormat = TextureFormat::D24_UNorm_S8_UInt;
     bool           hasDepth    = true;

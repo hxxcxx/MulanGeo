@@ -7,7 +7,7 @@
 #pragma once
 
 #include <MulanGeo/Engine/Render/EngineView.h>
-
+#include <QColor>
 #include <QSettings>
 
 class EngineSettings {
@@ -32,6 +32,10 @@ public:
     /// 从 ViewConfig 读取（用于首次保存默认值以外的场景）
     void loadFrom(const MulanGeo::Engine::ViewConfig& cfg);
 
+    /// 获取当前的背景色
+    QColor backgroundColor() const;
+    void setBackgroundColor(const QColor& color);
+
 private:
     EngineSettings();
     ~EngineSettings() = default;
@@ -44,6 +48,7 @@ private:
     QSettings m_qsettings{"MulanGeo", "Engine"};
 
     MulanGeo::Engine::GraphicsBackend           m_backend = MulanGeo::Engine::GraphicsBackend::Vulkan;
-    MulanGeo::Engine::RenderConfig::MSAALevel   m_msaa    = MulanGeo::Engine::RenderConfig::MSAALevel::None;
+    MulanGeo::Engine::RenderConfig::MSAALevel   m_msaa    = MulanGeo::Engine::RenderConfig::MSAALevel::x4;
     bool                                        m_vsync   = true;
+    QColor                                     m_bgcolor;
 };

@@ -9,8 +9,10 @@
 
 #include <QFormLayout>
 #include <QComboBox>
+#include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QLabel>
+#include <QPushButton>
 
 using namespace MulanGeo::Engine;
 
@@ -38,6 +40,11 @@ EngineSettingsDialog::EngineSettingsDialog(QWidget* parent)
     m_comboMsaa->addItem("MSAA 8x", static_cast<int>(RenderConfig::MSAALevel::x8));
     layout->addRow(tr("Anti-Aliasing:"), m_comboMsaa);
 
+    // --- 背景色 ---
+    m_buttonColor = new QPushButton(this);
+    connect(m_buttonColor, &QPushButton::clicked, this, &EngineSettingsDialog::onChooseBackgroundColor);
+    layout->addRow(tr("Background:"), m_buttonColor);
+
     // --- 提示 ---
     auto* hint = new QLabel(tr("Changes take effect on next document tab."), this);
     hint->setStyleSheet("color: gray; font-size: 10pt;");
@@ -52,29 +59,40 @@ EngineSettingsDialog::EngineSettingsDialog(QWidget* parent)
     connect(buttons, &QDialogButtonBox::rejected, this, &EngineSettingsDialog::onReject);
 
     readSettings();
+    adjustSize();
 }
 
 void EngineSettingsDialog::readSettings() {
     auto& s = EngineSettings::instance();
-
-    // Backend
     int idx = m_comboBackend->findData(static_cast<int>(s.backend()));
     if (idx >= 0) m_comboBackend->setCurrentIndex(idx);
-
-    // MSAA
     idx = m_comboMsaa->findData(static_cast<int>(s.msaa()));
     if (idx >= 0) m_comboMsaa->setCurrentIndex(idx);
+    m_backgroundColor = s.backgroundColor();
+    updateBackgroundButton();
 }
 
 void EngineSettingsDialog::onAccept() {
     auto& s = EngineSettings::instance();
-
     s.setBackend(static_cast<GraphicsBackend>(m_comboBackend->currentData().toInt()));
     s.setMsaa(static_cast<RenderConfig::MSAALevel>(m_comboMsaa->currentData().toInt()));
-
+    s.setBackgroundColor(m_backgroundColor);
     accept();
 }
 
 void EngineSettingsDialog::onReject() {
     reject();
+}
+
+void EngineSettingsDialog::onChooseBackgroundColor() {
+    QColor color = QColorDialog::getColor(m_backgroundColor, this, tr("Background Color"), QColorDialog::ShowAlphaChannel);
+    if (!color.isValid()) return;
+    m_backgroundColor = color;
+    updateBackgroundButton();
+}
+
+void EngineSettingsDialog::updateBackgroundButton() {
+    if (!m_buttonColor) return;
+    m_buttonColor->setText(m_backgroundColor.name(QColor::HexArgb).toUpper());
+    m_buttonColor->setStyleSheet(QString("background-color: %1;").arg(m_backgroundColor.name(QColor::HexArgb)));
 }

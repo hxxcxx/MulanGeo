@@ -27,7 +27,7 @@ struct RenderConfig {
         x4     = 4,
         x8     = 8,
     };
-    MSAALevel msaa = MSAALevel::None;
+    MSAALevel msaa = MSAALevel::x4;
 
     // --- 帧缓冲 ---
     uint8_t  bufferCount = 2;           // 双缓冲 / 三缓冲

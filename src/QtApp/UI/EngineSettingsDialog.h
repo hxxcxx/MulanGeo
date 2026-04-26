@@ -7,8 +7,9 @@
 #pragma once
 
 #include <QDialog>
-
+#include <QColor>
 class QComboBox;
+class QPushButton;
 
 class EngineSettingsDialog : public QDialog {
     Q_OBJECT
@@ -18,10 +19,14 @@ public:
 private slots:
     void onAccept();
     void onReject();
+    void onChooseBackgroundColor();
 
 private:
     void readSettings();
+    void updateBackgroundButton();
 
     QComboBox*  m_comboBackend = nullptr;
     QComboBox*  m_comboMsaa    = nullptr;
+    QPushButton* m_buttonColor = nullptr;
+    QColor      m_backgroundColor;
 };
