@@ -15,6 +15,10 @@ add_library(Engine STATIC
     Render/TextureCache.cpp
     # Render passes
     Render/Pass/ForwardPass.cpp
+    # Text rendering (MSDF)
+    Render/Text/FontAtlas.cpp
+    Render/Text/TextLayout.cpp
+    Render/Text/TextRenderer.cpp
     # Material system
     Render/Material/MaterialCache.cpp
     Render/Material/MaterialInstance.cpp
@@ -101,6 +105,9 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 # nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)
 
+# msdfgen (MSDF 文字渲染)
+find_package(msdfgen CONFIG REQUIRED)
+
 target_link_libraries(Engine PUBLIC
     Core
     glm::glm
@@ -109,6 +116,7 @@ target_link_libraries(Engine PUBLIC
     OpenGL::GL
     glad::glad
     nlohmann_json::nlohmann_json
+    msdfgen::msdfgen
     d3d12
     d3d11
     dxgi
@@ -162,6 +170,8 @@ if(DXC_EXECUTABLE)
         pick.frag.hlsl
         edge.vert.hlsl
         edge.frag.hlsl
+        text.vert.hlsl
+        text.frag.hlsl
     )
 
     # Common.hlsli 作为依赖（不单独编译）
@@ -184,6 +194,10 @@ if(DXC_EXECUTABLE)
     set(EDGE_VERT_ENTRY     main)
     set(EDGE_FRAG_STAGE     ps)
     set(EDGE_FRAG_ENTRY     main)
+    set(TEXT_VERT_STAGE     vs)
+    set(TEXT_VERT_ENTRY     main)
+    set(TEXT_FRAG_STAGE     ps)
+    set(TEXT_FRAG_ENTRY     main)
 
     foreach(SHADER_FILE ${SHADER_SOURCES})
         # 转为大写标识符用于变量查找
