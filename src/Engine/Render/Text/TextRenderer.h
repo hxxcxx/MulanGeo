@@ -10,11 +10,11 @@
 #include "TextTypes.h"
 #include "FontAtlas.h"
 
-#include "../RHI/Device.h"
-#include "../RHI/PipelineState.h"
-#include "../RHI/Buffer.h"
-#include "../RHI/Shader.h"
-#include "../RHI/Sampler.h"
+#include "../../RHI/Device.h"
+#include "../../RHI/PipelineState.h"
+#include "../../RHI/Buffer.h"
+#include "../../RHI/Shader.h"
+#include "../../RHI/Sampler.h"
 
 #include <memory>
 #include <vector>

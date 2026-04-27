@@ -8,9 +8,9 @@
 #pragma once
 
 #include "TextTypes.h"
-#include "../RHI/Device.h"
-#include "../RHI/Texture.h"
-#include "../RHI/Sampler.h"
+#include "../../RHI/Device.h"
+#include "../../RHI/Texture.h"
+#include "../../RHI/Sampler.h"
 
 #include <unordered_map>
 #include <vector>

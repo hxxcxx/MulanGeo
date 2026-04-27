@@ -1,7 +1,6 @@
 # Engine - 渲染后端与场景管理（静态库）
 add_library(Engine STATIC
     Platform/Win32Window.cpp
-    RHI/vertex_layout_test.cpp
     RHI/DeviceFactory.cpp
     Scene/SceneNode.cpp
     Scene/Scene.cpp
@@ -117,6 +116,7 @@ target_link_libraries(Engine PUBLIC
     glad::glad
     nlohmann_json::nlohmann_json
     msdfgen::msdfgen
+    msdf-atlas-gen
     d3d12
     d3d11
     dxgi
