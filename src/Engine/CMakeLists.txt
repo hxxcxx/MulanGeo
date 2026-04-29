@@ -104,9 +104,6 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 # nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)
 
-# msdfgen (MSDF 文字渲染)
-find_package(msdfgen CONFIG REQUIRED)
-
 target_link_libraries(Engine PUBLIC
     Core
     glm::glm

@@ -13,6 +13,9 @@
         },
         "nlohmann-json",
         "spdlog",
-        "tl-expected"
+        "tl-expected",
+        "freetype",
+        "tinyxml2",
+        "libpng"
     ]
 }

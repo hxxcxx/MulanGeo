@@ -64,10 +64,11 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 # ── 3rdparty ──
 add_subdirectory(3rdparty/SARibbon)
 
-# msdf-atlas-gen: 使用 vcpkg 已安装的 msdfgen，不编译独立可执行文件
-set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON CACHE BOOL "" FORCE)
+# msdf-atlas-gen: 使用内嵌的 msdfgen 子模块，不编译独立可执行文件
+set(MSDF_ATLAS_MSDFGEN_EXTERNAL OFF CACHE BOOL "" FORCE)
 set(MSDF_ATLAS_BUILD_STANDALONE OFF CACHE BOOL "" FORCE)
 set(MSDF_ATLAS_USE_VCPKG OFF CACHE BOOL "" FORCE)
+set(MSDF_ATLAS_USE_SKIA OFF CACHE BOOL "" FORCE)
 set(MSDF_ATLAS_NO_ARTERY_FONT ON CACHE BOOL "" FORCE)
 add_subdirectory(3rdparty/msdf-atlas-gen)
 
