@@ -13,10 +13,6 @@
         },
         "nlohmann-json",
         "spdlog",
-        "tl-expected",
-        {
-            "name": "msdfgen",
-            "features": ["extensions"]
-        }
+        "tl-expected"
     ]
 }
