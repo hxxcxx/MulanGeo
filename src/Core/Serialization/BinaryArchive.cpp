@@ -108,6 +108,7 @@ void BinaryOutputArchive::endBulkArray() {
 
 void BinaryOutputArchive::write(int32_t value) {
     if (m_bulkMode) {
+        if (m_bulkWritten >= m_bulkCount) return;
         writeRaw(&value, sizeof(value));
         ++m_bulkWritten;
         return;
@@ -118,6 +119,7 @@ void BinaryOutputArchive::write(int32_t value) {
 
 void BinaryOutputArchive::write(int64_t value) {
     if (m_bulkMode) {
+        if (m_bulkWritten >= m_bulkCount) return;
         writeRaw(&value, sizeof(value));
         ++m_bulkWritten;
         return;
@@ -128,6 +130,7 @@ void BinaryOutputArchive::write(int64_t value) {
 
 void BinaryOutputArchive::write(float value) {
     if (m_bulkMode) {
+        if (m_bulkWritten >= m_bulkCount) return;
         writeRaw(&value, sizeof(value));
         ++m_bulkWritten;
         return;
@@ -138,6 +141,7 @@ void BinaryOutputArchive::write(float value) {
 
 void BinaryOutputArchive::write(double value) {
     if (m_bulkMode) {
+        if (m_bulkWritten >= m_bulkCount) return;
         writeRaw(&value, sizeof(value));
         ++m_bulkWritten;
         return;
@@ -148,6 +152,7 @@ void BinaryOutputArchive::write(double value) {
 
 void BinaryOutputArchive::write(bool value) {
     if (m_bulkMode) {
+        if (m_bulkWritten >= m_bulkCount) return;
         uint8_t v = value ? 1 : 0;
         writeRaw(&v, sizeof(v));
         ++m_bulkWritten;
@@ -160,6 +165,7 @@ void BinaryOutputArchive::write(bool value) {
 
 void BinaryOutputArchive::write(std::string_view value) {
     if (m_bulkMode) {
+        if (m_bulkWritten >= m_bulkCount) return;
         writeRaw(value.data(), value.size());
         ++m_bulkWritten;
         return;
@@ -172,8 +178,8 @@ void BinaryOutputArchive::write(std::string_view value) {
 
 void BinaryOutputArchive::writeBytes(std::span<const byte> data) {
     if (m_bulkMode) {
+        if (m_bulkWritten >= m_bulkCount) return;
         writeRaw(data.data(), data.size());
-        // bytes 算一个元素
         ++m_bulkWritten;
         return;
     }

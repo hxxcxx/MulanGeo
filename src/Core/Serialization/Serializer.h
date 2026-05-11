@@ -27,6 +27,16 @@
 namespace MulanGeo::Core {
 
 // ============================================================
+// 数组最大元素数量（防恶意文件 / 检查溢出）
+// 可在编译期通过定义宏覆盖： -DMULANGEO_MAX_ARRAY_SIZE=1000000
+// 不同的 Archive 或 Serializer 可根据场景选择不同的限值。
+// ============================================================
+
+#ifndef MULANGEO_MAX_ARRAY_SIZE
+#define MULANGEO_MAX_ARRAY_SIZE 10'000'000
+#endif
+
+// ============================================================
 // Serializer<T> 主模板（用户需要特化此模板来支持自定义类型）
 // ============================================================
 
@@ -129,8 +139,7 @@ struct Serializer<std::vector<T>> {
         auto result = ar.beginArray(size);
         if (!result) return result;
 
-        // 防恶意文件：限制最大数组大小
-        if (size > 10'000'000) [[unlikely]] {
+        if (size > MULANGEO_MAX_ARRAY_SIZE) [[unlikely]] {
             return tl::make_unexpected(ArchiveError::outOfMemory(size));
         }
 

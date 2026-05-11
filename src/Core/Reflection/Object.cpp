@@ -48,50 +48,48 @@ std::vector<std::string> ObjectFactory::registeredTypes() const {
 // 读模式：读 typeName → factory create → serialize(InputArchive&)
 // ============================================================
 
-template<>
-struct Serializer<std::unique_ptr<Object>> {
-    static void write(OutputArchive& ar, const std::unique_ptr<Object>& obj) {
-        if (!obj) {
-            // 空指针：写入空标记
-            ar.write(false);
-            return;
-        }
-        ar.write(true);
-        ar.write(std::string_view(obj->typeName()));
-        obj->serialize(ar);  // 虚函数分发到具体类型
+void Serializer<std::unique_ptr<Object>>::write(OutputArchive& ar,
+                                                  const std::unique_ptr<Object>& obj) {
+    if (!obj) {
+        ar.write(false);
+        return;
     }
+    ar.write(true);
+    ar.write(std::string_view(obj->typeName()));
+    obj->serialize(ar);  // 虚函数分发到具体类型
+}
 
-    static ArchiveResult read(InputArchive& ar, std::unique_ptr<Object>& out) {
-        bool hasValue = false;
-        auto result = Serializer<bool>::read(ar, hasValue);
-        if (!result) return result;
+ArchiveResult Serializer<std::unique_ptr<Object>>::read(InputArchive& ar,
+                                                         std::unique_ptr<Object>& out) {
+    bool hasValue = false;
+    auto result = Serializer<bool>::read(ar, hasValue);
+    if (!result) return result;
 
-        if (!hasValue) {
-            out.reset();
-            return {};
-        }
-
-        std::string typeName;
-        result = Serializer<std::string>::read(ar, typeName);
-        if (!result) return result;
-
-        auto obj = ObjectFactory::instance().create(typeName);
-        if (!obj) {
-            return tl::make_unexpected(
-                ArchiveError::make(ArchiveError::Code::MissingKey,
-                                   "Unknown object type: " + typeName));
-        }
-
-        obj->serialize(ar);  // 虚函数分发到具体类型的读方向
-        if (ar.hasError()) {
-            return tl::make_unexpected(
-                ArchiveError::make(ArchiveError::Code::CorruptedData,
-                                   ar.errorMessage()));
-        }
-
-        out = std::move(obj);
+    if (!hasValue) {
+        out.reset();
         return {};
     }
-};
+
+    std::string typeName;
+    result = Serializer<std::string>::read(ar, typeName);
+    if (!result) return result;
+
+    auto obj = ObjectFactory::instance().create(typeName);
+    if (!obj) {
+        return tl::make_unexpected(
+            ArchiveError::make(ArchiveError::Code::MissingKey,
+                               "Unknown object type: " + typeName));
+    }
+
+    obj->serialize(ar);  // 虚函数分发到具体类型的读方向
+    if (ar.hasError()) {
+        return tl::make_unexpected(
+            ArchiveError::make(ArchiveError::Code::CorruptedData,
+                               ar.errorMessage()));
+    }
+
+    out = std::move(obj);
+    return {};
+}
 
 } // namespace MulanGeo::Core

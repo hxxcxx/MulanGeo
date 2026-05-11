@@ -63,11 +63,11 @@ enum class TypeTag : uint8_t {
 
 struct BinaryFileHeader {
     char magic[4] = {'M', 'G', 'A', 'R'};
-    uint16_t version = 1;
-    uint16_t flags = 0;
+    uint32_t version = 1;
+    uint32_t flags = 0;     // bit0=big-endian, bit1=has-index-table
 };
 
-static_assert(sizeof(BinaryFileHeader) == 8);
+static_assert(sizeof(BinaryFileHeader) == 12);
 
 // ============================================================
 // BinaryOutputArchive

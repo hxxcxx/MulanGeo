@@ -15,6 +15,7 @@ void TypeRegistry::registerClass(std::string_view name,
                                   const ClassInfo* baseInfo,
                                   size_t size,
                                   bool isAbstract) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::string key(name);
 
     auto& entry = m_classesByName[key];
@@ -27,6 +28,7 @@ void TypeRegistry::registerClass(std::string_view name,
 }
 
 void TypeRegistry::registerProperty(std::string_view className, PropertyInfo prop) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_classesByName.find(std::string(className));
     if (it == m_classesByName.end()) return;
 
@@ -34,6 +36,7 @@ void TypeRegistry::registerProperty(std::string_view className, PropertyInfo pro
 }
 
 const ClassInfo* TypeRegistry::findClass(std::string_view name) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_classesByName.find(std::string(name));
     if (it == m_classesByName.end()) return nullptr;
     return it->second.info.get();
@@ -44,18 +47,21 @@ const ClassInfo* TypeRegistry::findClass(const TypeInfo& typeInfo) const {
 }
 
 const ClassInfo* TypeRegistry::findClass(std::type_index idx) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_classesByType.find(idx);
     if (it == m_classesByType.end()) return nullptr;
     return it->second;
 }
 
 const std::vector<PropertyInfo>* TypeRegistry::findProperties(std::string_view className) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_classesByName.find(std::string(className));
     if (it == m_classesByName.end()) return nullptr;
     return &it->second.properties;
 }
 
 std::vector<std::string> TypeRegistry::registeredClasses() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<std::string> names;
     names.reserve(m_classesByName.size());
     for (const auto& [name, _] : m_classesByName) {

@@ -136,33 +136,36 @@ protected:
         if (!m_hasError) {
             m_hasError = true;
             m_errorMessage = msg;
+            // 错误发生时自动记录路径上下文
+            m_errorMessage += " at " + buildPath();
         }
     }
 
-    /// 构建当前路径上下文（供错误报告使用）
-    void pushPathKey(std::string_view name);
-    void pushPathIndex(uint32_t index);
-    void popPath();
-    std::string currentPath() const;
+    // --- 路径上下文追踪（子类在 key/array 操作时调用）---
+
+    /// key() 解析成功时调用
+    void onPathKey(std::string_view name);
+    /// 进入数组时调用
+    void onPathBeginArray();
+    /// 数组元素前进时调用（每读完一个元素）
+    void onPathAdvanceIndex();
+    /// 离开数组或对象时调用
+    void onPathPop();
 
 private:
     bool m_hasError = false;
     std::string m_errorMessage;
 
-    // 路径栈用于构建错误上下文
+    std::string buildPath() const;
+
+    // 路径栈
     struct PathEntry {
-        bool isIndex;
-        uint32_t index;
+        enum Type { Key, Array };
+        Type type;
         std::string name;
+        uint32_t index = 0;
     };
     std::vector<PathEntry> m_pathStack;
-
-    // 数组深度栈：跟踪每层数组的当前下标
-    struct ArrayDepth {
-        uint32_t index;
-        uint32_t size;
-    };
-    std::vector<ArrayDepth> m_arrayStack;
 };
 
 } // namespace MulanGeo::Core

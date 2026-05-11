@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <typeindex>
@@ -88,6 +89,8 @@ private:
     TypeRegistry() = default;
     TypeRegistry(const TypeRegistry&) = delete;
     TypeRegistry& operator=(const TypeRegistry&) = delete;
+
+    mutable std::mutex m_mutex;
 
     // 按类名索引
     struct ClassEntry {

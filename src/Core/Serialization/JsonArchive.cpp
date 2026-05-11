@@ -119,28 +119,30 @@ void JsonOutputArchive::write(std::string_view value) {
 
 void JsonOutputArchive::writeBytes(std::span<const byte> data) {
     // bytes 存储为 base64 编码的 string
-    static const char kBase64Table[] =
+    static const char kEncodeTable[65] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::string encoded;
     encoded.reserve(((data.size() + 2) / 3) * 4);
 
+    // 编码主循环：每次 3 字节 → 4 字符，查表加速
     size_t i = 0;
     for (; i + 2 < data.size(); i += 3) {
         uint32_t n = (static_cast<uint8_t>(data[i]) << 16) |
                      (static_cast<uint8_t>(data[i + 1]) << 8) |
                      static_cast<uint8_t>(data[i + 2]);
-        encoded += kBase64Table[(n >> 18) & 0x3F];
-        encoded += kBase64Table[(n >> 12) & 0x3F];
-        encoded += kBase64Table[(n >> 6) & 0x3F];
-        encoded += kBase64Table[n & 0x3F];
+        encoded += kEncodeTable[(n >> 18) & 0x3F];
+        encoded += kEncodeTable[(n >> 12) & 0x3F];
+        encoded += kEncodeTable[(n >> 6) & 0x3F];
+        encoded += kEncodeTable[n & 0x3F];
     }
+    // 尾部补齐
     if (i < data.size()) {
         uint32_t n = static_cast<uint8_t>(data[i]) << 16;
         if (i + 1 < data.size()) n |= static_cast<uint8_t>(data[i + 1]) << 8;
-        encoded += kBase64Table[(n >> 18) & 0x3F];
-        encoded += kBase64Table[(n >> 12) & 0x3F];
-        encoded += (i + 1 < data.size()) ? kBase64Table[(n >> 6) & 0x3F] : '=';
+        encoded += kEncodeTable[(n >> 18) & 0x3F];
+        encoded += kEncodeTable[(n >> 12) & 0x3F];
+        encoded += (i + 1 < data.size()) ? kEncodeTable[(n >> 6) & 0x3F] : '=';
         encoded += '=';
     }
 
@@ -175,7 +177,8 @@ bool JsonOutputArchive::saveToFile(const std::filesystem::path& filePath) const 
 struct JsonInputArchive::Impl {
     // 节点栈：每个元素是指向 json 节点的指针 + 遍历状态
     struct StackEntry {
-        const json* node;           // 当前层级的 JSON 节点
+        const json* node;           // 父对象节点（key() 不修改此指针）
+        const json* value = nullptr; // key() 解析后的值节点，用完即重置
         bool isArray = false;
         uint32_t arrayIndex = 0;    // 数组遍历时的当前下标
         uint32_t arraySize = 0;
@@ -198,18 +201,26 @@ struct JsonInputArchive::Impl {
         return stack.empty() ? nullptr : stack.back().node;
     }
 
+    // 获取当前要读的节点：优先用 key() 解析的值，其次数组元素，最后当前节点
+    const json* consumeValue() {
+        if (stack.empty()) return &root;
+        auto& top = stack.back();
+        if (top.value) {
+            auto* v = top.value;
+            top.value = nullptr;
+            return v;
+        }
+        if (top.isArray) {
+            if (top.arrayIndex >= top.arraySize) return nullptr;
+            return &(*top.node)[top.arrayIndex++];
+        }
+        return top.node;
+    }
+
     const json* lookupKey(const json* obj, std::string_view name) const {
         if (!obj || !obj->is_object()) return nullptr;
         auto it = obj->find(name);
         return (it != obj->end()) ? &*it : nullptr;
-    }
-
-    const json* nextArrayElement() {
-        if (stack.empty()) return nullptr;
-        auto& top = stack.back();
-        if (!top.isArray) return nullptr;
-        if (top.arrayIndex >= top.arraySize) return nullptr;
-        return &(*top.node)[top.arrayIndex++];
     }
 };
 
@@ -245,31 +256,20 @@ JsonInputArchive::~JsonInputArchive() = default;
 ArchiveResult JsonInputArchive::beginObject() {
     if (hasError()) return {};
 
-    // 从数组或根节点获取下一个值
-    const json* node = nullptr;
-    if (m_impl->stack.empty()) {
-        node = &m_impl->root;
-    } else {
-        auto& top = m_impl->stack.back();
-        if (top.isArray) {
-            node = m_impl->nextArrayElement();
-        } else {
-            node = top.node;  // key() 已经设置好了
-        }
-    }
-
+    const json* node = m_impl->consumeValue();
     if (!node || !node->is_object()) {
         auto err = ArchiveError::typeMismatch("object", node ? node->type_name() : "null");
         return tl::make_unexpected(std::move(err));
     }
 
-    m_impl->stack.push_back({node, false, 0, 0});
+    m_impl->stack.push_back({node, nullptr, false, 0, 0});
     return {};
 }
 
 ArchiveResult JsonInputArchive::endObject() {
     if (hasError()) return {};
     if (!m_impl->stack.empty()) {
+        onPathPop();
         m_impl->stack.pop_back();
     }
     return {};
@@ -289,43 +289,36 @@ ArchiveResult JsonInputArchive::key(std::string_view name) {
                                "Cannot call key() inside an array"));
     }
 
+    // 只把解析结果存到 value 中，不修改 node（父对象指针）
     const json* val = m_impl->lookupKey(top.node, name);
     if (!val) {
         return tl::make_unexpected(ArchiveError::missingKey(name));
     }
 
-    top.node = val;
+    top.value = val;
+    onPathKey(name);
     return {};
 }
 
 ArchiveResult JsonInputArchive::beginArray(uint32_t& outSize) {
     if (hasError()) return {};
 
-    const json* node = nullptr;
-    if (m_impl->stack.empty()) {
-        node = &m_impl->root;
-    } else {
-        auto& top = m_impl->stack.back();
-        if (top.isArray) {
-            node = m_impl->nextArrayElement();
-        } else {
-            node = top.node;
-        }
-    }
-
+    const json* node = m_impl->consumeValue();
     if (!node || !node->is_array()) {
         auto err = ArchiveError::typeMismatch("array", node ? node->type_name() : "null");
         return tl::make_unexpected(std::move(err));
     }
 
     outSize = static_cast<uint32_t>(node->size());
-    m_impl->stack.push_back({node, true, 0, outSize});
+    onPathBeginArray();
+    m_impl->stack.push_back({node, nullptr, true, 0, outSize});
     return {};
 }
 
 ArchiveResult JsonInputArchive::endArray() {
     if (hasError()) return {};
     if (!m_impl->stack.empty()) {
+        onPathPop();
         m_impl->stack.pop_back();
     }
     return {};
@@ -336,17 +329,10 @@ ArchiveResult JsonInputArchive::endArray() {
 #define MULANGEO_JSON_READ_IMPL(Type, JsonGetter)                                  \
     ArchiveResult JsonInputArchive::read(Type& out) {                              \
         if (hasError()) return {};                                                 \
-        const json* node = nullptr;                                                \
-        if (!m_impl->stack.empty()) {                                              \
-            auto& top = m_impl->stack.back();                                      \
-            if (top.isArray) {                                                     \
-                node = m_impl->nextArrayElement();                                 \
-            } else {                                                               \
-                node = top.node;                                                   \
-            }                                                                      \
-        } else {                                                                   \
-            node = &m_impl->root;                                                  \
+        if (!m_impl->stack.empty() && m_impl->stack.back().isArray) {              \
+            onPathAdvanceIndex();                                                  \
         }                                                                          \
+        const json* node = m_impl->consumeValue();                                 \
         if (!node) {                                                               \
             return tl::make_unexpected(ArchiveError::corrupted("No value to read")); \
         }                                                                          \
@@ -369,13 +355,10 @@ MULANGEO_JSON_READ_IMPL(bool, get<bool>)
 
 ArchiveResult JsonInputArchive::read(std::string& out) {
     if (hasError()) return {};
-    const json* node = nullptr;
-    if (!m_impl->stack.empty()) {
-        auto& top = m_impl->stack.back();
-        node = top.isArray ? m_impl->nextArrayElement() : top.node;
-    } else {
-        node = &m_impl->root;
+    if (!m_impl->stack.empty() && m_impl->stack.back().isArray) {
+        onPathAdvanceIndex();
     }
+    const json* node = m_impl->consumeValue();
     if (!node) {
         return tl::make_unexpected(ArchiveError::corrupted("No value to read"));
     }
@@ -390,14 +373,10 @@ ArchiveResult JsonInputArchive::read(std::string& out) {
 
 ArchiveResult JsonInputArchive::readBytes(std::vector<byte>& out) {
     if (hasError()) return {};
-
-    const json* node = nullptr;
-    if (!m_impl->stack.empty()) {
-        auto& top = m_impl->stack.back();
-        node = top.isArray ? m_impl->nextArrayElement() : top.node;
-    } else {
-        node = &m_impl->root;
+    if (!m_impl->stack.empty() && m_impl->stack.back().isArray) {
+        onPathAdvanceIndex();
     }
+    const json* node = m_impl->consumeValue();
     if (!node) {
         return tl::make_unexpected(ArchiveError::corrupted("No value to read"));
     }
@@ -482,14 +461,18 @@ bool JsonInputArchive::hasKey(std::string_view name) const {
 }
 
 ArchiveResult JsonInputArchive::skipValue() {
-    // JSON 格式中，key() 定位后不调用 read() 就等于跳过。
-    // 数组中需要前进一个下标。
     if (hasError()) return {};
-    if (!m_impl->stack.empty()) {
-        auto& top = m_impl->stack.back();
-        if (top.isArray && top.arrayIndex < top.arraySize) {
-            top.arrayIndex++;
-        }
+    if (m_impl->stack.empty()) return {};
+
+    auto& top = m_impl->stack.back();
+    if (top.value) {
+        // key() 解析过的值还未消费：丢弃它
+        top.value = nullptr;
+        return {};
+    }
+    if (top.isArray && top.arrayIndex < top.arraySize) {
+        // 在数组中：跳过当前元素（可能是任意复杂类型，只需要递增下标）
+        top.arrayIndex++;
     }
     return {};
 }
@@ -498,19 +481,38 @@ ArchiveResult JsonInputArchive::skipValue() {
 // InputArchive 路径栈实现
 // ============================================================
 
-void InputArchive::pushPathKey(std::string_view name) {
-    // 暂时用简单的路径字符串记录，可后续优化
-    (void)name;
+void InputArchive::onPathKey(std::string_view name) {
+    m_pathStack.push_back({PathEntry::Key, std::string(name), 0});
 }
 
-void InputArchive::pushPathIndex(uint32_t index) {
-    (void)index;
+void InputArchive::onPathBeginArray() {
+    m_pathStack.push_back({PathEntry::Array, {}, 0});
 }
 
-void InputArchive::popPath() {}
+void InputArchive::onPathAdvanceIndex() {
+    if (!m_pathStack.empty() && m_pathStack.back().type == PathEntry::Array) {
+        m_pathStack.back().index++;
+    }
+}
 
-std::string InputArchive::currentPath() const {
-    return {};
+void InputArchive::onPathPop() {
+    if (!m_pathStack.empty()) {
+        m_pathStack.pop_back();
+    }
+}
+
+std::string InputArchive::buildPath() const {
+    std::string path;
+    for (size_t i = 0; i < m_pathStack.size(); ++i) {
+        auto& entry = m_pathStack[i];
+        if (entry.type == PathEntry::Key) {
+            if (!path.empty()) path += ".";
+            path += entry.name;
+        } else {
+            path += "[" + std::to_string(entry.index) + "]";
+        }
+    }
+    return path;
 }
 
 } // namespace MulanGeo::Core

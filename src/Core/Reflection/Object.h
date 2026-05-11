@@ -122,3 +122,20 @@ private:
 
 
 } // namespace MulanGeo::Core
+
+// ============================================================
+// Serializer<std::unique_ptr<Object>> 声明（DLL 导出）
+// 实现在 Object.cpp 中
+// ============================================================
+
+#include "../Serialization/Serializer.h"
+
+namespace MulanGeo::Core {
+
+template<>
+struct CORE_API Serializer<std::unique_ptr<Object>> {
+    static void write(OutputArchive& ar, const std::unique_ptr<Object>& obj);
+    static ArchiveResult read(InputArchive& ar, std::unique_ptr<Object>& out);
+};
+
+} // namespace MulanGeo::Core
