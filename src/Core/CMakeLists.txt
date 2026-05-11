@@ -7,6 +7,10 @@ add_library(Core SHARED
     Log/Log.cpp
     Result/Result.cpp
     Serialization/JsonArchive.cpp
+    Serialization/BinaryArchive.cpp
+    Serialization/VersionBlock.cpp
+    Reflection/Object.cpp
+    Reflection/TypeRegistry.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Core/...
