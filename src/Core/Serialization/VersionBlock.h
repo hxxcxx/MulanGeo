@@ -6,7 +6,7 @@
  * 读模式：读取版本号 + size → 记录块结束位置 → 析构时跳转到块尾。
  *
  * Reader 遇到不认识的 version 时按 size 跳过整个块，天然支持前向兼容。
- * JsonArchive 不使用 VersionBlock，其版本兼容依赖 hasKey() + skipValue()。
+ * JSON 格式不使用 VersionBlock，其版本兼容依赖 hasKey() + skipValue()。
  */
 #pragma once
 

@@ -44,7 +44,7 @@ public:
     virtual void beginArray(uint32_t size) = 0;
     virtual void endArray() = 0;
 
-    // --- 批量写入（BinaryArchive 优化路径，JsonArchive 退化为 beginArray/endArray）---
+    // --- 批量写入（BinaryArchive 优化路径，其他格式退化为 beginArray/endArray）---
     virtual void beginBulkArray(uint32_t count, uint32_t elementStride) {
         beginArray(count);
         (void)elementStride;

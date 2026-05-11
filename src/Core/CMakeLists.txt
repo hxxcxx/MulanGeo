@@ -6,7 +6,6 @@ add_library(Core SHARED
     Image/Image.cpp
     Log/Log.cpp
     Result/Result.cpp
-    Serialization/JsonArchive.cpp
     Serialization/BinaryArchive.cpp
     Serialization/VersionBlock.cpp
     Reflection/Object.cpp
@@ -49,10 +48,6 @@ if(TL_EXPECTED_INCLUDE_DIR)
 else()
     message(FATAL_ERROR "tl-expected not found — run vcpkg install tl-expected")
 endif()
-
-# --- nlohmann-json (JsonArchive) ---
-find_package(nlohmann_json CONFIG REQUIRED)
-target_link_libraries(Core PRIVATE nlohmann_json::nlohmann_json)
 
 # CMake 对 SHARED 库自动定义 <name>_EXPORTS 宏（如 Core_EXPORTS）
 # 我们用 Core_EXPORTS 来触发 dllexport
