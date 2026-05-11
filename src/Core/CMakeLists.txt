@@ -6,6 +6,7 @@ add_library(Core SHARED
     Image/Image.cpp
     Log/Log.cpp
     Result/Result.cpp
+    Serialization/Archive.cpp
     Serialization/BinaryArchive.cpp
     Serialization/VersionBlock.cpp
     Reflection/Object.cpp
