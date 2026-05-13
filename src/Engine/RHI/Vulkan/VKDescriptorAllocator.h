@@ -8,6 +8,7 @@
 #pragma once
 
 #include "VkCommon.h"
+#include "VKDescriptorSet.h"
 
 #include <vector>
 #include <array>
@@ -25,7 +26,7 @@ public:
     ~VKDescriptorAllocator();
 
     void resetPools();
-    vk::DescriptorSet allocate(vk::DescriptorSetLayout layout);
+    VKDescriptorSet allocate(vk::DescriptorSetLayout layout);
 
     void bindUniformBuffer(vk::DescriptorSet set, uint32_t binding,
                            vk::Buffer buffer, vk::DeviceSize offset,

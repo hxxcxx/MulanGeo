@@ -11,6 +11,7 @@
 #include "VkConvert.h"
 #include "VKBuffer.h"
 #include "VKPipelineState.h"
+#include "VKDescriptorSet.h"
 
 #include <array>
 

@@ -21,7 +21,7 @@ void VKDescriptorAllocator::resetPools() {
     m_activePool = nullptr;
 }
 
-vk::DescriptorSet VKDescriptorAllocator::allocate(vk::DescriptorSetLayout layout) {
+VKDescriptorSet VKDescriptorAllocator::allocate(vk::DescriptorSetLayout layout) {
     if (!m_activePool) {
         m_activePool = getOrCreatePool();
     }
@@ -33,7 +33,7 @@ vk::DescriptorSet VKDescriptorAllocator::allocate(vk::DescriptorSetLayout layout
 
     try {
         auto sets = m_device.allocateDescriptorSets(allocCI);
-        return sets[0];
+        return VKDescriptorSet(m_device, sets[0]);
     } catch (vk::OutOfPoolMemoryError&) {
     } catch (vk::FragmentedPoolError&) {
     }
@@ -41,7 +41,7 @@ vk::DescriptorSet VKDescriptorAllocator::allocate(vk::DescriptorSetLayout layout
     m_activePool = createPool();
     allocCI.descriptorPool = m_activePool;
     auto sets = m_device.allocateDescriptorSets(allocCI);
-    return sets[0];
+    return VKDescriptorSet(m_device, sets[0]);
 }
 
 void VKDescriptorAllocator::bindUniformBuffer(vk::DescriptorSet set, uint32_t binding,
