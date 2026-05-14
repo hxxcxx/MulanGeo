@@ -143,7 +143,7 @@ void VKCommandList::transitionResource(Texture* texture, ResourceState newState)
     vk::ImageMemoryBarrier barrier;
     barrier.image = vkTex->image();
     barrier.subresourceRange.aspectMask = VKTexture::isDepthFormat(vkTex->desc().format)
-        ? vk::ImageAspectFlagBits::eDepth
+        ? (vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil)
         : vk::ImageAspectFlagBits::eColor;
     barrier.subresourceRange.baseMipLevel   = 0;
     barrier.subresourceRange.levelCount     = vkTex->desc().mipLevels;

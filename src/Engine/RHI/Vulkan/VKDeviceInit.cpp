@@ -5,6 +5,7 @@
 
 #include <set>
 #include <cstdio>
+#include <cstdlib>
 
 namespace MulanGeo::Engine {
 
@@ -233,7 +234,10 @@ void VKDevice::init(const CreateInfo& ci) {
     // TODO: dlopen("libvulkan.so.1") 加载
 #endif
 
-    if (!vkGetInstanceProcAddr) return;
+    if (!vkGetInstanceProcAddr) {
+        std::fprintf(stderr, "[VKDevice] Failed to load Vulkan loader (vulkan-1.dll)\n");
+        std::abort();
+    }
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 

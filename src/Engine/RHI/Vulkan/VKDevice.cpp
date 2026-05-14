@@ -236,11 +236,26 @@ vk::RenderPass VKDevice::getOrCreateRenderPass(
     subpass.pColorAttachments       = colorRefs.data();
     subpass.pDepthStencilAttachment = key.depthEnable ? &depthRef : nullptr;
 
+    // Subpass dependency: external → subpass 0
+    // 确保之前的渲染操作（如 swapchain present）完成后才开始 color/depth 写入
+    vk::SubpassDependency dependency;
+    dependency.srcSubpass    = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass    = 0;
+    dependency.srcStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput
+                             | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput
+                             | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.srcAccessMask = {};
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite
+                             | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
     vk::RenderPassCreateInfo rpCI;
     rpCI.attachmentCount = static_cast<uint32_t>(attachments.size());
     rpCI.pAttachments    = attachments.data();
     rpCI.subpassCount    = 1;
     rpCI.pSubpasses      = &subpass;
+    rpCI.dependencyCount = 1;
+    rpCI.pDependencies   = &dependency;
 
     vk::RenderPass renderPass = m_device.createRenderPass(rpCI);
     m_renderPassCache.emplace(key, renderPass);
