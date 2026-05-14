@@ -77,7 +77,7 @@ vk::DescriptorPool VKDescriptorAllocator::getOrCreatePool() {
 
 vk::DescriptorPool VKDescriptorAllocator::createPool() {
     vk::DescriptorPoolCreateInfo poolCI;
-    poolCI.flags         = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+    poolCI.flags         = {};
     poolCI.maxSets       = 1000;
     poolCI.poolSizeCount = static_cast<uint32_t>(m_poolSizes.sizes.size());
     poolCI.pPoolSizes    = m_poolSizes.sizes.data();
