@@ -23,6 +23,8 @@
 #include "Material/MaterialCache.h"
 #include "Pass/ForwardPass.h"
 #include "Pass/RenderPass.h"
+#include "Text/TextRenderer.h"
+#include "Text/FontAtlas.h"
 
 #include <cstdint>
 #include <memory>
@@ -82,6 +84,15 @@ public:
 
     void setRenderMode(RenderMode mode) { m_renderMode = mode; }
     RenderMode renderMode() const { return m_renderMode; }
+
+    /// 添加 2D 屏幕文字（在 render() 末尾绘制）
+    void addText(std::string_view text,
+                 float x, float y,
+                 float fontSize = 32.0f,
+                 const float color[4] = nullptr);
+
+    /// 设置字体（必须在首次 addText 前调用）
+    void setFont(FontAtlas* font);
 
     void render(const RenderQueue& queue, const Camera& camera, CommandList* cmdList,
                 const LightEnvironment& lightEnv);
@@ -165,6 +176,11 @@ private:
 
     std::unique_ptr<ForwardPass>                m_forwardPass;
     std::vector<RenderPass*>                    m_passes;  // 有序 Pass 列表
+
+    // --- 文字渲染 ---
+
+    std::unique_ptr<TextRenderer>               m_textRenderer;
+    FontAtlas*                                  m_font = nullptr;
 
     // --- 状态 ---
 

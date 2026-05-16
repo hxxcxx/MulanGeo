@@ -42,12 +42,17 @@ bool SceneRenderer::init(TextureFormat colorFmt, TextureFormat depthFmt, bool ha
     m_forwardPass = std::make_unique<ForwardPass>(*this);
     m_passes.push_back(m_forwardPass.get());
 
+    // 文字渲染器
+    m_textRenderer = std::make_unique<TextRenderer>(m_device);
+    m_textRenderer->init(colorFmt, depthFmt);
+
     return true;
 }
 
 void SceneRenderer::cleanup() {
     m_passes.clear();
     m_forwardPass.reset();
+    m_textRenderer.reset();
     m_instances.clear();
     m_defaultMaterial = nullptr;
     m_materialBuffer.reset();
@@ -356,6 +361,13 @@ void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, Comma
 
     for (auto* pass : m_passes)
         pass->execute(ctx);
+
+    // 文字绘制（在所有 pass 之后，叠加在场景上方）
+    if (m_textRenderer && m_font) {
+        m_textRenderer->render(cmdList,
+                               static_cast<uint32_t>(camera.width()),
+                               static_cast<uint32_t>(camera.height()));
+    }
 }
 
 // ============================================================
@@ -451,6 +463,24 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList,
     ++m_stats.drawCalls;
     ++m_stats.items;
     ++m_drawCallIndex;
+}
+
+// ============================================================
+// 文字
+// ============================================================
+
+void SceneRenderer::setFont(FontAtlas* font) {
+    m_font = font;
+    if (m_textRenderer && font)
+        m_textRenderer->setFont(font);
+}
+
+void SceneRenderer::addText(std::string_view text,
+                             float x, float y,
+                             float fontSize,
+                             const float color[4]) {
+    if (m_textRenderer)
+        m_textRenderer->addText(text, x, y, fontSize, color);
 }
 
 } // namespace MulanGeo::Engine
